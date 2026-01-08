@@ -10,7 +10,7 @@ const jwt = require('jsonwebtoken');
  */
 exports.registerClinic = async (req, res) => {
   try {
-    const { clinicName, email, password } = req.body;
+    const { clinicName, phone, email, passwordx } = req.body;
 
     // -------- Validation --------
     if (!clinicName || !email || !password) {
