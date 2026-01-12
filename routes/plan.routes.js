@@ -1,8 +1,19 @@
-
 const r = require('express').Router();
 const c = require('../controllers/plan.controller');
-r.post('/',c.create);
-r.put('/:id',c.update);
-r.delete('/:id',c.remove);
-r.get('/',c.list);
+
+// Create plan
+r.post('/', c.create);
+
+// List plans
+r.get('/', c.list);
+
+// Plan detail
+r.get('/:id', c.getById);
+
+// Update plan
+r.put('/:id', c.update);
+
+// Delete plan
+r.delete('/:id', c.remove);
+
 module.exports = r;
