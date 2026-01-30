@@ -30,7 +30,7 @@ exports.registerClinic = async (req, res) => {
     }
 
     // -------- Create clinic --------
-    const clinic = await Clinic.create({ name: clinicName });
+    const clinic = await Clinic.create({ name: clinicName, phone });
 
     // -------- Create admin user --------
     const hashedPassword = await bcrypt.hash(password, 10);
