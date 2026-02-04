@@ -11,9 +11,9 @@ const appointmentSchema = new mongoose.Schema(
 
     doctorId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User', // or 'Doctor'
-      required: true,
-      index: true
+      ref: 'User',
+      required: true
+      // ❌ removed index:true
     },
 
     patientId: {
@@ -46,9 +46,9 @@ const appointmentSchema = new mongoose.Schema(
 );
 
 // ✅ Performance indexes
-appointmentSchema.index({ clinicId: 1, startTime: 1 });
-appointmentSchema.index({ clinicId: 1, status: 1 });
-appointmentSchema.index({ doctorId: 1 });
-appointmentSchema.index({ clinicId: 1, _id: 1 });
+appointmentSchema.index({ clinicId: 1, startTime: 1 }); // calendar
+appointmentSchema.index({ clinicId: 1, status: 1 });    // dashboard
+appointmentSchema.index({ doctorId: 1 });               // doctor view
+appointmentSchema.index({ clinicId: 1, _id: 1 });        // pagination
 
 module.exports = mongoose.model('Appointment', appointmentSchema);

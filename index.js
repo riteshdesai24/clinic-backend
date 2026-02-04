@@ -35,4 +35,4 @@ app.use('/api/plans', require('./routes/plan.routes'));
 app.use('/api/payments', require('./routes/payment.routes'));
 app.use('/api/webhooks', require('./routes/webhook.routes'));
 
-app.listen(process.env.PORT, ()=>console.log('Server running'));
+app.listen(process.env.PORT, ()=>console.log('Server running', - process.env.PORT));

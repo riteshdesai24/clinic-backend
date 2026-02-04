@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 
 /**
  * ============================
- * AUTH PROTECT MIDDLEWARE
+ * AUTH PROTECT
  * ============================
  */
 exports.protect = (req, res, next) => {
@@ -17,13 +17,21 @@ exports.protect = (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    req.user = decoded;
-    req.clinicId = decoded.clinicId;
-    req.role = decoded.role;
+    // ✅ Attach everything in one place
+    req.user = {
+      id: decoded.userId,
+      role: decoded.role,
+      clinicId: decoded.clinicId
+    };
 
-    return next();
+    // optional shortcut (if you like)
+    req.clinicId = decoded.clinicId;
+
+    next();
+
   } catch (error) {
     return res.status(401).json({
       success: false,
@@ -32,6 +40,7 @@ exports.protect = (req, res, next) => {
   }
 };
 
+
 /**
  * ============================
  * ROLE BASED ACCESS
@@ -39,12 +48,14 @@ exports.protect = (req, res, next) => {
  */
 exports.allowRoles = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.role)) {
+
+    if (!req.user || !roles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
         message: 'Access denied'
       });
     }
-    return next();
+
+    next();
   };
 };

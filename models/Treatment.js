@@ -6,26 +6,26 @@ const treatmentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Clinic',
       required: true,
-      index: true
+      index: true // keep this (used everywhere)
     },
 
     appointmentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Appointment',
-      index: true
+      ref: 'Appointment'
+      // ❌ removed index:true
     },
 
     doctorId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      index: true
+      ref: 'User'
+      // ❌ removed index:true
     },
 
     patientId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Patient',
-      required: true,
-      index: true
+      required: true
+      // ❌ removed index:true
     },
 
     description: {
@@ -36,7 +36,7 @@ const treatmentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes
+// ✅ Performance indexes
 treatmentSchema.index({ clinicId: 1, appointmentId: 1 });
 treatmentSchema.index({ clinicId: 1, patientId: 1 });
 treatmentSchema.index({ doctorId: 1 });
