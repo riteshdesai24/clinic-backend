@@ -3,6 +3,7 @@ const Appointment = require('../models/Appointment');
 const Treatment = require('../models/Treatment');
 const mongoose = require('mongoose');
 
+
 /**
  * =====================================================
  * CREATE PATIENT
@@ -10,9 +11,47 @@ const mongoose = require('mongoose');
  */
 exports.create = async (req, res) => {
   try {
+
+    const {
+      firstName,
+      lastName,
+      phone,
+      email,
+      address1,
+      address2,
+      address3,
+      age,
+      gender,
+      medicalAllergies,
+      pincode
+    } = req.body;
+
+    // Validation
+    if (!firstName || !lastName || !phone || !gender) {
+      return res.status(400).json({
+        success: false,
+        message: 'First name, last name, phone and gender are required'
+      });
+    }
+
     const patient = await Patient.create({
-      ...req.body,
-      clinicId: req.clinicId
+
+      clinicId: req.clinicId,
+
+      firstName,
+      lastName,
+      phone,
+      email,
+
+      address1,
+      address2,
+      address3,
+
+      age,
+      gender,
+
+      medicalAllergies,
+      pincode
     });
 
     return res.status(201).json({
@@ -20,8 +59,18 @@ exports.create = async (req, res) => {
       message: 'Patient created successfully',
       data: patient
     });
+
   } catch (error) {
+
     console.error('Create Patient Error:', error);
+
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: 'Patient with this phone already exists'
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -29,14 +78,15 @@ exports.create = async (req, res) => {
   }
 };
 
+
 /**
  * =====================================================
  * LIST PATIENTS
- * Filters + Sorting + Cursor Pagination
  * =====================================================
  */
 exports.list = async (req, res) => {
   try {
+
     const {
       cursor,
       limit = 10,
@@ -50,18 +100,26 @@ exports.list = async (req, res) => {
 
     const query = { clinicId: req.clinicId };
 
+    // Gender filter
     if (gender) {
-      query.gender = gender.toUpperCase(); // MALE | FEMALE
+      query.gender = gender.toUpperCase();
     }
 
+    // Search
     if (search) {
-      query.name = { $regex: search, $options: 'i' };
+      query.$or = [
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search } }
+      ];
     }
 
+    // Phone filter
     if (phone) {
       query.phone = { $regex: phone };
     }
 
+    // Date filter
     if (startDate && endDate) {
       query.createdAt = {
         $gte: new Date(startDate),
@@ -69,7 +127,9 @@ exports.list = async (req, res) => {
       };
     }
 
+    // Cursor pagination
     if (cursor) {
+
       query._id =
         sort === 'asc'
           ? { $gt: new mongoose.Types.ObjectId(cursor) }
@@ -83,6 +143,7 @@ exports.list = async (req, res) => {
       .limit(pageLimit + 1);
 
     const hasNextPage = patients.length > pageLimit;
+
     if (hasNextPage) patients.pop();
 
     const nextCursor =
@@ -97,8 +158,11 @@ exports.list = async (req, res) => {
       nextCursor,
       data: patients
     });
+
   } catch (error) {
+
     console.error('List Patients Error:', error);
+
     return res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -106,14 +170,15 @@ exports.list = async (req, res) => {
   }
 };
 
+
 /**
  * =====================================================
- * PATIENT DETAIL
- * Patient + Appointments + Treatments + Appointment Count
+ * GET PATIENT DETAIL
  * =====================================================
  */
 exports.getById = async (req, res) => {
   try {
+
     const { id } = req.params;
 
     const patient = await Patient.findOne({
@@ -128,38 +193,41 @@ exports.getById = async (req, res) => {
       });
     }
 
-    // ---- Appointment list ----
+    // Appointments
     const appointments = await Appointment.find({
       clinicId: req.clinicId,
       patientId: patient._id
     })
-      .select('_id startTime endTime status')
+      .populate('doctorId', 'staffname email phone specialization')
       .sort({ startTime: -1 });
 
-    // ---- Appointment counts ----
+    // Appointment stats
     const [total, completed, pending] = await Promise.all([
+
       Appointment.countDocuments({
         clinicId: req.clinicId,
         patientId: patient._id
       }),
+
       Appointment.countDocuments({
         clinicId: req.clinicId,
         patientId: patient._id,
         status: 'COMPLETED'
       }),
+
       Appointment.countDocuments({
         clinicId: req.clinicId,
         patientId: patient._id,
         status: 'PENDING'
       })
+
     ]);
 
-    // ---- Treatments ----
+    // Treatments
     const treatments = await Treatment.find({
       clinicId: req.clinicId,
       patientId: patient._id
     })
-      .select('_id description createdAt')
       .sort({ createdAt: -1 });
 
     return res.json({
@@ -175,14 +243,18 @@ exports.getById = async (req, res) => {
         treatments
       }
     });
+
   } catch (error) {
-    console.error('Get Patient Detail Error:', error);
+
+    console.error('Get Patient Error:', error);
+
     return res.status(500).json({
       success: false,
       message: 'Internal server error'
     });
   }
 };
+
 
 /**
  * =====================================================
@@ -191,12 +263,19 @@ exports.getById = async (req, res) => {
  */
 exports.update = async (req, res) => {
   try {
+
     const { id } = req.params;
 
     const patient = await Patient.findOneAndUpdate(
-      { _id: id, clinicId: req.clinicId },
+      {
+        _id: id,
+        clinicId: req.clinicId
+      },
       req.body,
-      { new: true, runValidators: true }
+      {
+        new: true,
+        runValidators: true
+      }
     );
 
     if (!patient) {
@@ -211,14 +290,18 @@ exports.update = async (req, res) => {
       message: 'Patient updated successfully',
       data: patient
     });
+
   } catch (error) {
+
     console.error('Update Patient Error:', error);
+
     return res.status(500).json({
       success: false,
       message: 'Internal server error'
     });
   }
 };
+
 
 /**
  * =====================================================
@@ -227,6 +310,7 @@ exports.update = async (req, res) => {
  */
 exports.remove = async (req, res) => {
   try {
+
     const { id } = req.params;
 
     const appointmentCount = await Appointment.countDocuments({
@@ -237,7 +321,7 @@ exports.remove = async (req, res) => {
     if (appointmentCount > 0) {
       return res.status(409).json({
         success: false,
-        message: 'Cannot delete patient with existing appointments'
+        message: 'Cannot delete patient with appointments'
       });
     }
 
@@ -257,8 +341,11 @@ exports.remove = async (req, res) => {
       success: true,
       message: 'Patient deleted successfully'
     });
+
   } catch (error) {
+
     console.error('Delete Patient Error:', error);
+
     return res.status(500).json({
       success: false,
       message: 'Internal server error'

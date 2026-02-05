@@ -109,7 +109,7 @@ exports.list = async (req, res) => {
       .sort({ _id: sort === 'asc' ? 1 : -1 })
       .limit(pageLimit + 1)
       .populate('patientId', 'name mobile age gender')
-      .populate('doctorId', 'name');
+      .populate('doctorId', 'staffname email phone specialization')
 
     const hasNextPage = appointments.length > pageLimit;
     if (hasNextPage) appointments.pop();
