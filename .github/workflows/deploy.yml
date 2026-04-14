@@ -6,24 +6,18 @@ on:
       - main
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.10
         with:
-          node-version: 18
-          cache: npm
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Syntax check
-        run: |
-          node --check index.js
-          node --check controllers/*.js
-          node --check middlewares/*.js
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/clinic-backend
+            git pull origin main
+            npm install
+            pm2 restart index || pm2 start index.js
