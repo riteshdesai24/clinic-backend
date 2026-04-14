@@ -28,7 +28,7 @@ mongoose.connect(process.env.MONGO_URI)
 app.get('/api', (req, res) => {
   res.send('API is running 🚀');
 });
-app.listen(3000, '0.0.0.0', () => {
+app.listen(5000, '0.0.0.0', () => {
   console.log('Server running on port 3000');
 });
 app.use('/api/auth', require('./routes/auth.routes'));
