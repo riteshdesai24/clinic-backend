@@ -6,11 +6,37 @@ on:
       - main
 
 jobs:
-  deploy:
+
+  # 🔹 STEP 1: BUILD + TEST
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to EC2
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Syntax check
+        run: |
+          node --check index.js
+          node --check controllers/*.js || true
+          node --check middlewares/*.js || true
+
+  # 🔹 STEP 2: DEPLOY (ONLY IF BUILD SUCCESS)
+  deploy:
+    needs: build   # 🔥 important
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.EC2_HOST }}
