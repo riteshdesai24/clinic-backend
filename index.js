@@ -28,9 +28,7 @@ mongoose.connect(process.env.MONGO_URI)
 app.get('/api', (req, res) => {
   res.send('API is running 🚀');
 });
-app.listen(5000, '0.0.0.0', () => {
-  console.log('Server running on port 3000');
-});
+
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/staff', require('./routes/staff.routes'));
 app.use('/api/doctors', require('./routes/doctor.routes'));
@@ -41,4 +39,5 @@ app.use('/api/plans', require('./routes/plan.routes'));
 app.use('/api/payments', require('./routes/payment.routes'));
 app.use('/api/webhooks', require('./routes/webhook.routes'));
 
-app.listen(process.env.PORT, ()=>console.log('Server running', - process.env.PORT));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, '0.0.0.0', ()=>console.log(`Server running - ${PORT}`));
