@@ -1,6 +1,6 @@
 const User = require('../models/User');
 const Clinic = require('../models/Clinic');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 
 /**
@@ -82,7 +82,7 @@ exports.createStaff = async (req, res) => {
       staffname,
       email,
       phone,
-      password: await bcrypt.hash(password, 10),
+      password: bcrypt.hashSync(password, 10),
       role,
       specialization: role === 'DOCTOR' ? specialization : ''
     });
@@ -289,7 +289,7 @@ exports.updateStaff = async (req, res) => {
 
     // Password hash
     if (data.password) {
-      data.password = await bcrypt.hash(data.password, 10);
+      data.password = bcrypt.hashSync(data.password, 10);
     }
 
     // Specialization logic

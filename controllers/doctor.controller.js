@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const Appointment = require('../models/Appointment');
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 /**
  * =====================================================
@@ -35,7 +35,7 @@ exports.create = async (req, res) => {
       });
     }
 
-    const hash = await bcrypt.hash(password, 10);
+    const hash = bcrypt.hashSync(password, 10);
 
     const doctor = await User.create({
       clinicId: req.user.clinicId,
