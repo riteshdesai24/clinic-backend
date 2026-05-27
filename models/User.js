@@ -12,6 +12,7 @@ const UserSchema = new mongoose.Schema(
     email: {
       type: String,
       unique: true,
+      required: true,
     },
 
     phone: String,
@@ -19,6 +20,7 @@ const UserSchema = new mongoose.Schema(
     password: {
       type: String,
       select: false,
+      required: true,
     },
 
     role: {
@@ -27,7 +29,7 @@ const UserSchema = new mongoose.Schema(
       default: 'ADMIN',
     },
 
-    // Doctor specific fields
+    // Doctor fields
     specialization: String,
 
     available: {
@@ -35,9 +37,9 @@ const UserSchema = new mongoose.Schema(
       default: true,
     },
 
-    // Add reset password fields
+    // 🔐 Forgot password fields
     resetPasswordToken: String,
-    resetPasswordExpires: Date,
+    resetPasswordExpire: Date,
   },
   { timestamps: true }
 );
