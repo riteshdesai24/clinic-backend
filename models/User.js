@@ -2,9 +2,11 @@ const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema(
   {
+    // For STAFF and DOCTOR — points to the ADMIN user's _id
+    // For ADMIN — null/undefined
     clinicId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Clinic',
+      ref: 'User',  // ✅ self-reference to User (ADMIN), not Clinic
       index: true
     },
 
@@ -38,13 +40,20 @@ const UserSchema = new mongoose.Schema(
       default: 'ADMIN'
     },
 
+    // Only meaningful on ADMIN users
     plan: {
       type: String,
       enum: ['BRONZE', 'GOLD', 'PLATINUM'],
       default: 'GOLD' // 🔄 Change to 'BRONZE' when plan system is ready
     },
 
-    // Doctor fields
+    // Only meaningful on ADMIN users
+    clinicName: {
+      type: String,
+      trim: true
+    },
+
+    // Doctor-only fields
     specialization: {
       type: String,
       trim: true
@@ -55,13 +64,12 @@ const UserSchema = new mongoose.Schema(
       default: true
     },
 
-    // Account status
     isActive: {
       type: Boolean,
       default: true
     },
 
-    // 🔐 Forgot password fields (token stored as SHA-256 hash)
+    // 🔐 Forgot password (stored as SHA-256 hash)
     resetPasswordToken: String,
     resetPasswordExpire: Date
   },

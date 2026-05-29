@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const Clinic = require('../models/Clinic');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -8,13 +7,13 @@ const sendEmail = require('../utils/sendEmail');
 const validatePassword = require('../utils/validatePassword');
 const logger = require('../utils/logger');
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const generateToken = (user, clinicId) => {
+const generateToken = (user) => {
   return jwt.sign(
     {
       userId: user._id,
-      clinicId: clinicId,
+      clinicId: user.clinicId ?? user._id, // ADMIN's own _id acts as clinicId
       role: user.role,
       plan: user.plan
     },
@@ -28,92 +27,73 @@ const stripSensitiveFields = (userObj) => {
   return safeUser;
 };
 
-// ─── Register Clinic ─────────────────────────────────────────────────────────
+// ─── Register Clinic (ADMIN) ──────────────────────────────────────────────────
 
 exports.registerClinic = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     let { clinicName, phone, email, password } = req.body;
 
     email = email?.trim().toLowerCase();
 
-    // ✅ Validate required fields
     if (!clinicName || !email || !password) {
-      await session.abortTransaction();
-      session.endSession();
       return res.status(400).json({
         success: false,
         message: 'clinicName, email and password are required'
       });
     }
 
-    // ✅ Validate password strength
     if (!validatePassword(password)) {
-      await session.abortTransaction();
-      session.endSession();
       return res.status(400).json({
         success: false,
         message: 'Password must be 8+ characters with uppercase, lowercase, number and special character'
       });
     }
 
-    // ✅ Check duplicate email
-    const existingUser = await User.findOne({ email }).session(session);
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
-      await session.abortTransaction();
-      session.endSession();
       return res.status(409).json({
         success: false,
         message: 'Email already registered'
       });
     }
 
-    // ✅ Create clinic
-    const [clinic] = await Clinic.create([{ name: clinicName, phone }], { session });
-
-    // ✅ Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // ✅ Create admin user
-    const [user] = await User.create(
-      [
-        {
-          clinicId: clinic._id,
-          email,
-          password: hashedPassword,
-          role: 'ADMIN',
-          plan: 'GOLD' // 🔄 Change to 'BRONZE' when plan system is ready
-        }
-      ],
-      { session }
-    );
+    // ✅ ADMIN user IS the clinic — no separate Clinic model needed
+    const user = await User.create({
+      clinicName,
+      phone,
+      email,
+      password: hashedPassword,
+      role: 'ADMIN',
+      plan: 'GOLD' // 🔄 Change to 'BRONZE' when plan system is ready
+    });
 
-    await session.commitTransaction();
-    session.endSession();
+    const token = generateToken(user);
 
-    const token = generateToken(user, clinic._id);
-
-    logger.info(`New clinic registered: ${clinic._id} by user: ${user._id}`);
+    logger.info(`New clinic registered: admin user ${user._id}`);
 
     return res.status(201).json({
       success: true,
       message: 'Clinic registered successfully',
       token,
-      clinic: { _id: clinic._id, name: clinic.name },
-      user: { _id: user._id, email: user.email, role: user.role, plan: user.plan }
+      user: {
+        _id: user._id,
+        clinicName: user.clinicName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        plan: user.plan
+      }
     });
 
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     logger.error('Register Clinic Error', { error: error.message, stack: error.stack });
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
-// ─── Login ───────────────────────────────────────────────────────────────────
+// ─── Login ────────────────────────────────────────────────────────────────────
 
 exports.login = async (req, res) => {
   try {
@@ -128,12 +108,8 @@ exports.login = async (req, res) => {
       });
     }
 
-    // ✅ Fetch user with password + clinic name and id only
-    const user = await User.findOne({ email })
-      .select('+password')
-      .populate('clinicId', 'name _id');
+    const user = await User.findOne({ email }).select('+password');
 
-    // ✅ Single password check (prevents timing attacks with consistent error)
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({
         success: false,
@@ -141,7 +117,6 @@ exports.login = async (req, res) => {
       });
     }
 
-    // ✅ Check account is active
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
@@ -149,17 +124,24 @@ exports.login = async (req, res) => {
       });
     }
 
-    const token = generateToken(user, user.clinicId?._id);
+    // ✅ For STAFF/DOCTOR — fetch the ADMIN (clinic owner) to get clinicName + plan
+    let clinicInfo = null;
+    if (user.role !== 'ADMIN' && user.clinicId) {
+      clinicInfo = await User.findById(user.clinicId).select('clinicName plan email phone');
+    }
 
+    const token = generateToken(user);
     const safeUser = stripSensitiveFields(user.toObject());
 
-    logger.info(`User logged in: ${user._id}`);
+    logger.info(`User logged in: ${user._id} role: ${user.role}`);
 
     return res.json({
       success: true,
       message: 'Login successful',
       token,
-      clinic: user.clinicId, // { _id, name }
+      clinic: user.role === 'ADMIN'
+        ? { _id: user._id, clinicName: user.clinicName, plan: user.plan }
+        : { _id: user.clinicId, clinicName: clinicInfo?.clinicName, plan: clinicInfo?.plan },
       user: safeUser
     });
 
@@ -183,15 +165,13 @@ exports.changePassword = async (req, res) => {
       });
     }
 
-    // ✅ Validate new password strength
     if (!validatePassword(newPassword)) {
       return res.status(400).json({
         success: false,
-        message: 'New password must be 8+ characters with uppercase, lowercase, number and special character'
+        message: 'Password must be 8+ characters with uppercase, lowercase, number and special character'
       });
     }
 
-    // ✅ Prevent reusing the same password
     if (oldPassword === newPassword) {
       return res.status(400).json({
         success: false,
@@ -200,7 +180,6 @@ exports.changePassword = async (req, res) => {
     }
 
     const user = await User.findById(userId).select('+password');
-
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -228,7 +207,6 @@ exports.changePassword = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
   try {
     let { email } = req.body;
-
     email = email?.trim().toLowerCase();
 
     if (!email) {
@@ -237,7 +215,7 @@ exports.forgotPassword = async (req, res) => {
 
     const user = await User.findOne({ email });
 
-    // ✅ Always return same response (prevents email enumeration)
+    // ✅ Always same response — prevents email enumeration
     if (!user) {
       return res.json({
         success: true,
@@ -245,17 +223,15 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
-    // ✅ Generate raw token (sent to user) and store hashed version
     const rawToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
 
     user.resetPasswordToken = hashedToken;
-    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 mins
+    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
     await user.save();
 
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${rawToken}`;
 
-    // ✅ Send actual email
     await sendEmail({
       to: user.email,
       subject: 'Password Reset Request',
@@ -264,7 +240,7 @@ exports.forgotPassword = async (req, res) => {
         <p>You requested a password reset. Click the link below:</p>
         <a href="${resetUrl}" target="_blank">Reset Password</a>
         <p>This link expires in <strong>15 minutes</strong>.</p>
-        <p>If you didn't request this, please ignore this email.</p>
+        <p>If you didn't request this, ignore this email.</p>
       `
     });
 
@@ -295,7 +271,6 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    // ✅ Validate password strength
     if (!validatePassword(newPassword)) {
       return res.status(400).json({
         success: false,
@@ -303,7 +278,6 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    // ✅ Hash the incoming raw token and compare against stored hash
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
     const user = await User.findOne({
