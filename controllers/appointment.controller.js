@@ -394,3 +394,69 @@ exports.remove = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
+
+// ─── Calendar View ─────────────────────────────────────────────────────────
+// GET /api/appointments/calendar?year=2025&month=6
+// - DOCTOR  → sees only their own appointments
+// - ADMIN   → sees all clinic appointments, optionally filter by ?doctorId=
+
+exports.getCalendar = async (req, res) => {
+  try {
+    const { year, month, doctorId } = req.query;
+
+    // ✅ Validate year & month
+    const y = parseInt(year);
+    const m = parseInt(month); // 1-based (1 = Jan, 12 = Dec)
+
+    if (!y || !m || m < 1 || m > 12 || y < 2000 || y > 2100)
+      return res.status(400).json({ success: false, message: 'Valid year and month (1-12) are required' });
+
+    // ✅ Build date range for the whole month (UTC)
+    const from = new Date(Date.UTC(y, m - 1, 1));           // 1st of month 00:00 UTC
+    const to   = new Date(Date.UTC(y, m, 1));               // 1st of next month 00:00 UTC
+
+    // ✅ Base query — always clinic-scoped
+    const query = {
+      clinicId: req.user.clinicId,
+      date: { $gte: from, $lt: to }
+    };
+
+    if (req.user.role === 'DOCTOR') {
+      // Doctors only see their own appointments — ignore any doctorId param
+      query.doctorId = req.user._id;
+    } else if (req.user.role === 'ADMIN' && doctorId) {
+      // Admin can optionally filter by a specific doctor
+      if (!mongoose.Types.ObjectId.isValid(doctorId))
+        return res.status(400).json({ success: false, message: 'Invalid doctorId' });
+      query.doctorId = doctorId;
+    }
+    // If ADMIN with no doctorId filter → fetch all clinic appointments
+
+    const appointments = await Appointment.find(query)
+      .populate('doctorId', 'staffname specialization')
+      .populate('patientId', 'name phone age gender')
+      .sort({ date: 1, time: 1 })
+      .lean();
+
+    // ✅ Group by "YYYY-MM-DD" for easy calendar consumption
+    const grouped = {};
+    for (const appt of appointments) {
+      // Use UTC date to avoid timezone shifts on the key
+      const d = new Date(appt.date);
+      const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(appt);
+    }
+
+    return res.json({
+      success: true,
+      year: y,
+      month: m,
+      data: grouped         // { "2025-06-15": [ ...appointments ] }
+    });
+
+  } catch (err) {
+    logger.error('Calendar Appointments Error', { error: err.message, stack: err.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};

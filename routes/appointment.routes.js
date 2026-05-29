@@ -3,6 +3,7 @@ const c = require('../controllers/appointment.controller');
 const { protect } = require('../middlewares/auth');
 
 r.post('/',    protect, c.create);   // Create
+r.get('/calendar',       protect, c.getCalendar);
 r.get('/',     protect, c.getAll);   // List
 r.get('/:id',  protect, c.getById);  // Detail  ← must stay after r.get('/')
 r.put('/:id',  protect, c.update);   // Update
