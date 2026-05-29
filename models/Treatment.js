@@ -1,44 +1,66 @@
 const mongoose = require('mongoose');
 
-const treatmentSchema = new mongoose.Schema(
+const MedicineSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    dosage: { type: String, trim: true },    // e.g. "500mg"
+    frequency: { type: String, trim: true }, // e.g. "Twice a day"
+    duration: { type: String, trim: true }   // e.g. "5 days"
+  },
+  { _id: false }
+);
+
+const TreatmentSchema = new mongoose.Schema(
   {
     clinicId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Clinic',
+      ref: 'User', // ✅ ADMIN user = clinic
       required: true,
-      index: true // keep this (used everywhere)
+      index: true
     },
 
     appointmentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Appointment'
-      // ❌ removed index:true
-    },
-
-    doctorId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-      // ❌ removed index:true
+      ref: 'Appointment',
+      required: true,
+      index: true
     },
 
     patientId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Patient',
-      required: true
-      // ❌ removed index:true
+      required: true,
+      index: true
     },
 
-    description: {
+    doctorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User', // ✅ DOCTOR user
+      required: true,
+      index: true
+    },
+
+    diagnosis: {
       type: String,
-      required: true
+      required: true,
+      trim: true
+    },
+
+    medicines: {
+      type: [MedicineSchema],
+      default: []
+    },
+
+    notes: {
+      type: String,
+      trim: true
+    },
+
+    followUpDate: {
+      type: Date
     }
   },
   { timestamps: true }
 );
 
-// ✅ Performance indexes
-treatmentSchema.index({ clinicId: 1, appointmentId: 1 });
-treatmentSchema.index({ clinicId: 1, patientId: 1 });
-treatmentSchema.index({ doctorId: 1 });
-
-module.exports = mongoose.model('Treatment', treatmentSchema);
+module.exports = mongoose.model('Treatment', TreatmentSchema);

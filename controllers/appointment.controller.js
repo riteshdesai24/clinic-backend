@@ -1,192 +1,307 @@
 const Appointment = require('../models/Appointment');
-const Treatment = require('../models/Treatment');
+const Patient = require('../models/Patient');
+const User = require('../models/User');
 const mongoose = require('mongoose');
+const logger = require('../utils/logger');
 
-/**
- * =====================================================
- * CREATE APPOINTMENT
- * =====================================================
- */
+// ─── Create Appointment ───────────────────────────────────────────────────────
+
 exports.create = async (req, res) => {
   try {
-    const { startTime, endTime, doctorId } = req.body;
+    const { doctorId, patientId, date, notes, status } = req.body;
 
-    if (!startTime || !endTime || !doctorId) {
+    // ✅ Validate required fields
+    if (!doctorId || !patientId || !date) {
       return res.status(400).json({
         success: false,
-        message: 'startTime, endTime and doctorId are required'
+        message: 'doctorId, patientId and date are required'
       });
     }
 
-    // ---- Slot conflict check (doctor-wise) ----
-    const conflict = await Appointment.findOne({
-      clinicId: req.clinicId,
-      doctorId,
-      startTime: { $lt: new Date(endTime) },
-      endTime: { $gt: new Date(startTime) }
-    });
+    // ✅ Validate ObjectIds
+    if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+      return res.status(400).json({ success: false, message: 'Invalid doctorId' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(patientId)) {
+      return res.status(400).json({ success: false, message: 'Invalid patientId' });
+    }
 
+    // ✅ Validate date
+    const appointmentDate = new Date(date);
+    if (isNaN(appointmentDate.getTime())) {
+      return res.status(400).json({ success: false, message: 'Invalid date format' });
+    }
+
+    // ✅ Verify doctor belongs to this clinic
+    const doctor = await User.findOne({
+      _id: doctorId,
+      clinicId: req.user.clinicId,
+      role: 'DOCTOR',
+      isActive: true
+    });
+    if (!doctor) {
+      return res.status(404).json({ success: false, message: 'Doctor not found in this clinic' });
+    }
+
+    // ✅ Verify patient belongs to this clinic
+    const patient = await Patient.findOne({
+      _id: patientId,
+      clinicId: req.user.clinicId,
+      isActive: true
+    });
+    if (!patient) {
+      return res.status(404).json({ success: false, message: 'Patient not found in this clinic' });
+    }
+
+    // ✅ Check doctor doesn't have another appointment at the same time
+    const conflict = await Appointment.findOne({
+      clinicId: req.user.clinicId,
+      doctorId,
+      date: appointmentDate,
+      status: { $nin: ['CANCELLED'] }
+    });
     if (conflict) {
       return res.status(409).json({
         success: false,
-        message: 'Slot already booked for this doctor'
+        message: 'Doctor already has an appointment at this time'
       });
     }
 
     const appointment = await Appointment.create({
-      ...req.body,
-      clinicId: req.clinicId
+      clinicId: req.user.clinicId, // ✅ from token
+      doctorId,
+      patientId,
+      date: appointmentDate,
+      notes: notes?.trim(),
+      status: status || 'PENDING'
     });
+
+    // ✅ Populate for response
+    const populated = await Appointment.findById(appointment._id)
+      .populate('doctorId', 'staffname specialization')
+      .populate('patientId', 'name phone');
+
+    logger.info(`Appointment created: ${appointment._id} for clinic: ${req.user.clinicId}`);
 
     return res.status(201).json({
       success: true,
       message: 'Appointment created successfully',
-      data: appointment
+      data: populated
     });
-  } catch (error) {
-    console.error('Create Appointment Error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+
+  } catch (err) {
+    logger.error('Create Appointment Error', { error: err.message, stack: err.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
-/**
- * =====================================================
- * LIST APPOINTMENTS
- * Cursor pagination + filters + populate
- * =====================================================
- */
-exports.list = async (req, res) => {
+// ─── List Appointments ────────────────────────────────────────────────────────
+
+exports.getAll = async (req, res) => {
   try {
     const {
-      cursor,
+      page = 1,
       limit = 10,
-      status,
+      search,
+      date,
       doctorId,
-      today,
-      startDate,
-      endDate,
-      sort = 'asc'
+      patientId,
+      status
     } = req.query;
 
-    const query = { clinicId: req.clinicId };
+    // ✅ Sanitize pagination
+    const pageNum = Math.max(parseInt(page) || 1, 1);
+    const pageLimit = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
 
-    if (status) query.status = status.toUpperCase();
+    // ✅ Always scoped to clinic from token
+    const query = { clinicId: req.user.clinicId };
 
     if (doctorId) {
-      query.doctorId = new mongoose.Types.ObjectId(doctorId);
+      if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+        return res.status(400).json({ success: false, message: 'Invalid doctorId' });
+      }
+      query.doctorId = doctorId;
     }
 
-    if (startDate && endDate) {
-      query.startTime = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
+    if (patientId) {
+      if (!mongoose.Types.ObjectId.isValid(patientId)) {
+        return res.status(400).json({ success: false, message: 'Invalid patientId' });
+      }
+      query.patientId = patientId;
+    }
+
+    if (status) {
+      const validStatuses = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
+      if (!validStatuses.includes(status.toUpperCase())) {
+        return res.status(400).json({ success: false, message: 'Invalid status value' });
+      }
+      query.status = status.toUpperCase();
+    }
+
+    if (date) {
+      const parsedDate = new Date(date);
+      if (isNaN(parsedDate.getTime())) {
+        return res.status(400).json({ success: false, message: 'Invalid date format' });
+      }
+      query.date = {
+        $gte: new Date(date + 'T00:00:00.000Z'),
+        $lte: new Date(date + 'T23:59:59.999Z')
       };
     }
 
-    if (today === 'true') {
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
-
-      const end = new Date();
-      end.setHours(23, 59, 59, 999);
-
-      query.startTime = { $gte: start, $lte: end };
+    if (search) {
+      query.$or = [
+        { status: { $regex: search.trim(), $options: 'i' } },
+        { notes: { $regex: search.trim(), $options: 'i' } }
+      ];
     }
 
-    if (cursor) {
-      query._id =
-        sort === 'asc'
-          ? { $gt: new mongoose.Types.ObjectId(cursor) }
-          : { $lt: new mongoose.Types.ObjectId(cursor) };
-    }
-
-    const pageLimit = parseInt(limit);
-
-    const appointments = await Appointment.find(query)
-      .sort({ _id: sort === 'asc' ? 1 : -1 })
-      .limit(pageLimit + 1)
-      .populate('patientId', 'name mobile age gender')
-      .populate('doctorId', 'staffname email phone specialization')
-
-    const hasNextPage = appointments.length > pageLimit;
-    if (hasNextPage) appointments.pop();
-
-    const nextCursor =
-      appointments.length > 0
-        ? appointments[appointments.length - 1]._id
-        : null;
+    const [data, count] = await Promise.all([
+      Appointment.find(query)
+        .populate('doctorId', 'staffname specialization')
+        .populate('patientId', 'name phone age gender')
+        .populate('treatmentId', 'diagnosis medicines')
+        .sort({ date: -1 })
+        .skip((pageNum - 1) * pageLimit)
+        .limit(pageLimit),
+      Appointment.countDocuments(query)
+    ]);
 
     return res.json({
       success: true,
-      count: appointments.length,
-      hasNextPage,
-      nextCursor,
-      data: appointments.map(a => ({
-        appointment: {
-          _id: a._id,
-          startTime: a.startTime,
-          endTime: a.endTime,
-          status: a.status,
-          createdAt: a.createdAt
-        },
-        patient: a.patientId,
-        doctor: a.doctorId
-      }))
+      page: pageNum,
+      limit: pageLimit,
+      totalPages: Math.ceil(count / pageLimit),
+      count,
+      data
     });
-  } catch (error) {
-    console.error('List Appointments Error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+
+  } catch (err) {
+    logger.error('List Appointments Error', { error: err.message, stack: err.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
-/**
- * =====================================================
- * GET APPOINTMENT DETAIL
- * =====================================================
- */
+// ─── Get Appointment By ID ────────────────────────────────────────────────────
+
 exports.getById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const appointment = await Appointment.findOne({
-      _id: id,
-      clinicId: req.clinicId
-    })
-      .populate('patientId', 'name mobile age gender')
-      .populate('doctorId', 'name');
-
-    if (!appointment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Appointment not found'
-      });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid appointment ID' });
     }
 
-    const treatments = await Treatment.find({
-      clinicId: req.clinicId,
-      appointmentId: appointment._id
-    }).sort({ createdAt: -1 });
+    const appointment = await Appointment.findOne({
+      _id: id,
+      clinicId: req.user.clinicId // ✅ clinic-scoped
+    })
+      .populate('doctorId', 'staffname specialization phone email')
+      .populate('patientId', 'name phone age gender email address medicalHistory')
+      .populate({
+        path: 'treatmentId',
+        populate: { path: 'doctorId', select: 'staffname specialization' }
+      });
+
+    if (!appointment) {
+      return res.status(404).json({ success: false, message: 'Appointment not found' });
+    }
+
+    return res.json({ success: true, data: appointment });
+
+  } catch (err) {
+    logger.error('Get Appointment Error', { error: err.message, stack: err.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+// ─── Update Appointment ───────────────────────────────────────────────────────
+
+exports.update = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid appointment ID' });
+    }
+
+    // ✅ Prevent sensitive field changes via this endpoint
+    const { clinicId, treatmentId, ...safeUpdates } = req.body;
+
+    if (safeUpdates.status) {
+      const validStatuses = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
+      if (!validStatuses.includes(safeUpdates.status.toUpperCase())) {
+        return res.status(400).json({ success: false, message: 'Invalid status value' });
+      }
+      safeUpdates.status = safeUpdates.status.toUpperCase();
+    }
+
+    if (safeUpdates.date) {
+      const parsedDate = new Date(safeUpdates.date);
+      if (isNaN(parsedDate.getTime())) {
+        return res.status(400).json({ success: false, message: 'Invalid date format' });
+      }
+      safeUpdates.date = parsedDate;
+    }
+
+    if (safeUpdates.doctorId && !mongoose.Types.ObjectId.isValid(safeUpdates.doctorId)) {
+      return res.status(400).json({ success: false, message: 'Invalid doctorId' });
+    }
+
+    const appointment = await Appointment.findOneAndUpdate(
+      { _id: id, clinicId: req.user.clinicId },
+      safeUpdates,
+      { new: true, runValidators: true }
+    )
+      .populate('doctorId', 'staffname specialization')
+      .populate('patientId', 'name phone');
+
+    if (!appointment) {
+      return res.status(404).json({ success: false, message: 'Appointment not found' });
+    }
+
+    logger.info(`Appointment updated: ${id} by user: ${req.user._id}`);
 
     return res.json({
       success: true,
-      data: {
-        appointment,
-        patient: appointment.patientId,
-        doctor: appointment.doctorId,
-        treatments
-      }
+      message: 'Appointment updated successfully',
+      data: appointment
     });
-  } catch (error) {
-    console.error('Get Appointment Detail Error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error'
+
+  } catch (err) {
+    logger.error('Update Appointment Error', { error: err.message, stack: err.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+// ─── Delete Appointment ───────────────────────────────────────────────────────
+
+exports.remove = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid appointment ID' });
+    }
+
+    const appointment = await Appointment.findOneAndDelete({
+      _id: id,
+      clinicId: req.user.clinicId // ✅ clinic-scoped
     });
+
+    if (!appointment) {
+      return res.status(404).json({ success: false, message: 'Appointment not found' });
+    }
+
+    logger.info(`Appointment deleted: ${id} by user: ${req.user._id}`);
+
+    return res.json({
+      success: true,
+      message: 'Appointment deleted successfully'
+    });
+
+  } catch (err) {
+    logger.error('Delete Appointment Error', { error: err.message, stack: err.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

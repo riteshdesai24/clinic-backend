@@ -1,58 +1,55 @@
 const Patient = require('../models/Patient');
 const Appointment = require('../models/Appointment');
-const Treatment = require('../models/Treatment');
 const mongoose = require('mongoose');
+const logger = require('../utils/logger');
 
+// ─── Create Patient ───────────────────────────────────────────────────────────
 
-/**
- * =====================================================
- * CREATE PATIENT
- * =====================================================
- */
 exports.create = async (req, res) => {
   try {
+    const { name, age, gender, phone, email, address, medicalHistory } = req.body;
 
-    const {
-      firstName,
-      lastName,
-      phone,
-      email,
-      address1,
-      address2,
-      address3,
-      age,
-      gender,
-      medicalAllergies,
-      pincode
-    } = req.body;
-
-    // Validation
-    if (!firstName || !lastName || !phone || !gender) {
+    // ✅ Validate required fields
+    if (!name || !phone) {
       return res.status(400).json({
         success: false,
-        message: 'First name, last name, phone and gender are required'
+        message: 'Name and phone are required'
+      });
+    }
+
+    // ✅ Phone format check (basic)
+    const phoneRegex = /^[0-9+\-\s()]{7,15}$/;
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid phone number format'
+      });
+    }
+
+    // ✅ Duplicate check — phone unique per clinic
+    const exists = await Patient.findOne({
+      clinicId: req.user.clinicId,
+      phone: phone.trim()
+    });
+    if (exists) {
+      return res.status(409).json({
+        success: false,
+        message: 'Patient with this phone already exists in this clinic'
       });
     }
 
     const patient = await Patient.create({
-
-      clinicId: req.clinicId,
-
-      firstName,
-      lastName,
-      phone,
-      email,
-
-      address1,
-      address2,
-      address3,
-
+      clinicId: req.user.clinicId, // ✅ from token
+      name: name.trim(),
       age,
-      gender,
-
-      medicalAllergies,
-      pincode
+      gender: gender?.toUpperCase(),
+      phone: phone.trim(),
+      email: email?.trim().toLowerCase(),
+      address: address?.trim(),
+      medicalHistory: medicalHistory?.trim()
     });
+
+    logger.info(`Patient created: ${patient._id} for clinic: ${req.user.clinicId}`);
 
     return res.status(201).json({
       success: true,
@@ -60,230 +57,146 @@ exports.create = async (req, res) => {
       data: patient
     });
 
-  } catch (error) {
-
-    console.error('Create Patient Error:', error);
-
-    if (error.code === 11000) {
-      return res.status(409).json({
-        success: false,
-        message: 'Patient with this phone already exists'
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+  } catch (err) {
+    logger.error('Create Patient Error', { error: err.message, stack: err.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
+// ─── List Patients ────────────────────────────────────────────────────────────
 
-/**
- * =====================================================
- * LIST PATIENTS
- * =====================================================
- */
-exports.list = async (req, res) => {
+exports.getAll = async (req, res) => {
   try {
+    const { page = 1, limit = 10, search } = req.query;
 
-    const {
-      cursor,
-      limit = 10,
-      gender,
-      search,
-      phone,
-      startDate,
-      endDate,
-      sort = 'asc'
-    } = req.query;
+    // ✅ Sanitize pagination
+    const pageNum = Math.max(parseInt(page) || 1, 1);
+    const pageLimit = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
 
-    const query = { clinicId: req.clinicId };
+    const query = {
+      clinicId: req.user.clinicId, // ✅ scoped to clinic
+      isActive: true
+    };
 
-    // Gender filter
-    if (gender) {
-      query.gender = gender.toUpperCase();
-    }
-
-    // Search
     if (search) {
       query.$or = [
-        { firstName: { $regex: search, $options: 'i' } },
-        { lastName: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search } }
+        { name: { $regex: search.trim(), $options: 'i' } },
+        { phone: { $regex: search.trim(), $options: 'i' } },
+        { email: { $regex: search.trim(), $options: 'i' } }
       ];
     }
 
-    // Phone filter
-    if (phone) {
-      query.phone = { $regex: phone };
-    }
-
-    // Date filter
-    if (startDate && endDate) {
-      query.createdAt = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
-      };
-    }
-
-    // Cursor pagination
-    if (cursor) {
-
-      query._id =
-        sort === 'asc'
-          ? { $gt: new mongoose.Types.ObjectId(cursor) }
-          : { $lt: new mongoose.Types.ObjectId(cursor) };
-    }
-
-    const pageLimit = parseInt(limit);
-
-    const patients = await Patient.find(query)
-      .sort({ _id: sort === 'asc' ? 1 : -1 })
-      .limit(pageLimit + 1);
-
-    const hasNextPage = patients.length > pageLimit;
-
-    if (hasNextPage) patients.pop();
-
-    const nextCursor =
-      patients.length > 0
-        ? patients[patients.length - 1]._id
-        : null;
+    const [data, count] = await Promise.all([
+      Patient.find(query)
+        .sort({ createdAt: -1 })
+        .skip((pageNum - 1) * pageLimit)
+        .limit(pageLimit),
+      Patient.countDocuments(query)
+    ]);
 
     return res.json({
       success: true,
-      count: patients.length,
-      hasNextPage,
-      nextCursor,
-      data: patients
+      page: pageNum,
+      limit: pageLimit,
+      totalPages: Math.ceil(count / pageLimit),
+      count,
+      data
     });
 
-  } catch (error) {
-
-    console.error('List Patients Error:', error);
-
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+  } catch (err) {
+    logger.error('List Patients Error', { error: err.message, stack: err.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
+// ─── Get Patient By ID ────────────────────────────────────────────────────────
 
-/**
- * =====================================================
- * GET PATIENT DETAIL
- * =====================================================
- */
 exports.getById = async (req, res) => {
   try {
-
     const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid patient ID' });
+    }
 
     const patient = await Patient.findOne({
       _id: id,
-      clinicId: req.clinicId
+      clinicId: req.user.clinicId // ✅ clinic-scoped
     });
 
     if (!patient) {
-      return res.status(404).json({
-        success: false,
-        message: 'Patient not found'
-      });
+      return res.status(404).json({ success: false, message: 'Patient not found' });
     }
 
-    // Appointments
-    const appointments = await Appointment.find({
-      clinicId: req.clinicId,
-      patientId: patient._id
-    })
-      .populate('doctorId', 'staffname email phone specialization')
-      .sort({ startTime: -1 });
-
-    // Appointment stats
-    const [total, completed, pending] = await Promise.all([
-
-      Appointment.countDocuments({
-        clinicId: req.clinicId,
-        patientId: patient._id
-      }),
-
-      Appointment.countDocuments({
-        clinicId: req.clinicId,
-        patientId: patient._id,
-        status: 'COMPLETED'
-      }),
-
-      Appointment.countDocuments({
-        clinicId: req.clinicId,
-        patientId: patient._id,
-        status: 'PENDING'
-      })
-
+    // ✅ Fetch appointment stats for this patient
+    const [total, completed, pending, cancelled] = await Promise.all([
+      Appointment.countDocuments({ clinicId: req.user.clinicId, patientId: id }),
+      Appointment.countDocuments({ clinicId: req.user.clinicId, patientId: id, status: 'COMPLETED' }),
+      Appointment.countDocuments({ clinicId: req.user.clinicId, patientId: id, status: 'PENDING' }),
+      Appointment.countDocuments({ clinicId: req.user.clinicId, patientId: id, status: 'CANCELLED' })
     ]);
-
-    // Treatments
-    const treatments = await Treatment.find({
-      clinicId: req.clinicId,
-      patientId: patient._id
-    })
-      .sort({ createdAt: -1 });
 
     return res.json({
       success: true,
       data: {
         patient,
-        appointmentCount: {
-          total,
-          completed,
-          pending
-        },
-        appointments,
-        treatments
+        appointmentStats: { total, completed, pending, cancelled }
       }
     });
 
-  } catch (error) {
-
-    console.error('Get Patient Error:', error);
-
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+  } catch (err) {
+    logger.error('Get Patient Error', { error: err.message, stack: err.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
+// ─── Update Patient ───────────────────────────────────────────────────────────
 
-/**
- * =====================================================
- * UPDATE PATIENT
- * =====================================================
- */
 exports.update = async (req, res) => {
   try {
-
     const { id } = req.params;
 
-    const patient = await Patient.findOneAndUpdate(
-      {
-        _id: id,
-        clinicId: req.clinicId
-      },
-      req.body,
-      {
-        new: true,
-        runValidators: true
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid patient ID' });
+    }
+
+    // ✅ Prevent clinicId from being changed
+    const { clinicId, ...safeUpdates } = req.body;
+
+    // ✅ Validate phone if being updated
+    if (safeUpdates.phone) {
+      safeUpdates.phone = safeUpdates.phone.trim();
+      const phoneRegex = /^[0-9+\-\s()]{7,15}$/;
+      if (!phoneRegex.test(safeUpdates.phone)) {
+        return res.status(400).json({ success: false, message: 'Invalid phone number format' });
       }
+
+      // ✅ Check phone not taken by another patient in same clinic
+      const phoneExists = await Patient.findOne({
+        clinicId: req.user.clinicId,
+        phone: safeUpdates.phone,
+        _id: { $ne: id }
+      });
+      if (phoneExists) {
+        return res.status(409).json({ success: false, message: 'Phone already in use by another patient' });
+      }
+    }
+
+    if (safeUpdates.gender) safeUpdates.gender = safeUpdates.gender.toUpperCase();
+    if (safeUpdates.email) safeUpdates.email = safeUpdates.email.trim().toLowerCase();
+    if (safeUpdates.name) safeUpdates.name = safeUpdates.name.trim();
+
+    const patient = await Patient.findOneAndUpdate(
+      { _id: id, clinicId: req.user.clinicId },
+      safeUpdates,
+      { new: true, runValidators: true }
     );
 
     if (!patient) {
-      return res.status(404).json({
-        success: false,
-        message: 'Patient not found'
-      });
+      return res.status(404).json({ success: false, message: 'Patient not found' });
     }
+
+    logger.info(`Patient updated: ${id} by user: ${req.user._id}`);
 
     return res.json({
       success: true,
@@ -291,64 +204,53 @@ exports.update = async (req, res) => {
       data: patient
     });
 
-  } catch (error) {
-
-    console.error('Update Patient Error:', error);
-
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+  } catch (err) {
+    logger.error('Update Patient Error', { error: err.message, stack: err.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
+// ─── Delete Patient ───────────────────────────────────────────────────────────
 
-/**
- * =====================================================
- * DELETE PATIENT
- * =====================================================
- */
 exports.remove = async (req, res) => {
   try {
-
     const { id } = req.params;
 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid patient ID' });
+    }
+
+    // ✅ Block deletion if patient has appointments
     const appointmentCount = await Appointment.countDocuments({
-      clinicId: req.clinicId,
+      clinicId: req.user.clinicId,
       patientId: id
     });
 
     if (appointmentCount > 0) {
       return res.status(409).json({
         success: false,
-        message: 'Cannot delete patient with appointments'
+        message: `Cannot delete patient with ${appointmentCount} existing appointment(s). Consider deactivating instead.`
       });
     }
 
     const patient = await Patient.findOneAndDelete({
       _id: id,
-      clinicId: req.clinicId
+      clinicId: req.user.clinicId
     });
 
     if (!patient) {
-      return res.status(404).json({
-        success: false,
-        message: 'Patient not found'
-      });
+      return res.status(404).json({ success: false, message: 'Patient not found' });
     }
+
+    logger.info(`Patient deleted: ${id} by user: ${req.user._id}`);
 
     return res.json({
       success: true,
       message: 'Patient deleted successfully'
     });
 
-  } catch (error) {
-
-    console.error('Delete Patient Error:', error);
-
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+  } catch (err) {
+    logger.error('Delete Patient Error', { error: err.message, stack: err.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

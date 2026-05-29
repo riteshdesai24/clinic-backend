@@ -1,54 +1,52 @@
 const mongoose = require('mongoose');
 
-const appointmentSchema = new mongoose.Schema(
+const AppointmentSchema = new mongoose.Schema(
   {
     clinicId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Clinic',
+      ref: 'User', // ✅ ADMIN user = clinic
       required: true,
       index: true
     },
 
     doctorId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
-      // ❌ removed index:true
+      ref: 'User', // ✅ DOCTOR user
+      required: true,
+      index: true
     },
 
     patientId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Patient',
-      required: true
-    },
-
-    startTime: {
-      type: Date,
       required: true,
       index: true
     },
 
-    endTime: {
+    date: {
       type: Date,
       required: true
     },
 
     status: {
       type: String,
-      enum: ['PENDING', 'COMPLETED', 'CANCELLED'],
-      default: 'PENDING',
-      index: true
+      enum: ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'],
+      default: 'PENDING'
     },
 
-    notes: String
+    notes: {
+      type: String,
+      trim: true
+    },
+
+    // ✅ Link to treatment once created
+    treatmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Treatment',
+      default: null
+    }
   },
   { timestamps: true }
 );
 
-// ✅ Performance indexes
-appointmentSchema.index({ clinicId: 1, startTime: 1 }); // calendar
-appointmentSchema.index({ clinicId: 1, status: 1 });    // dashboard
-appointmentSchema.index({ doctorId: 1 });               // doctor view
-appointmentSchema.index({ clinicId: 1, _id: 1 });        // pagination
-
-module.exports = mongoose.model('Appointment', appointmentSchema);
+module.exports = mongoose.model('Appointment', AppointmentSchema);

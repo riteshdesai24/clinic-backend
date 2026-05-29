@@ -1,64 +1,64 @@
 const mongoose = require('mongoose');
 
-const patientSchema = new mongoose.Schema({
+const PatientSchema = new mongoose.Schema(
+  {
+    clinicId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User', // ✅ ADMIN user = clinic
+      required: true,
+      index: true
+    },
 
-  clinicId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Clinic',
-    required: true,
-    index: true
+    name: {
+      type: String,
+      required: true,
+      trim: true
+    },
+
+    age: {
+      type: Number,
+      min: 0,
+      max: 150
+    },
+
+    gender: {
+      type: String,
+      enum: ['MALE', 'FEMALE', 'OTHER'],
+      uppercase: true,
+      trim: true
+    },
+
+    phone: {
+      type: String,
+      required: true,
+      trim: true
+    },
+
+    email: {
+      type: String,
+      lowercase: true,
+      trim: true
+    },
+
+    address: {
+      type: String,
+      trim: true
+    },
+
+    medicalHistory: {
+      type: String,
+      trim: true
+    },
+
+    isActive: {
+      type: Boolean,
+      default: true
+    }
   },
+  { timestamps: true }
+);
 
-  // Basic Info
-  firstName: {
-    type: String,
-    required: true,
-    index: true
-  },
+// ✅ Compound index — phone unique per clinic
+PatientSchema.index({ clinicId: 1, phone: 1 }, { unique: true });
 
-  lastName: {
-    type: String,
-    required: true,
-    index: true
-  },
-
-  phone: {
-    type: String,
-    required: true,
-    index: true
-  },
-
-  email: {
-    type: String
-  },
-
-  age: {
-    type: Number
-  },
-
-  gender: {
-    type: String,
-    enum: ['MALE', 'FEMALE', 'OTHER'],
-    required: true
-  },
-
-  // Address
-  address1: String,
-  address2: String,
-  address3: String,
-
-  pincode: String,
-
-  // Medical
-  medicalAllergies: {
-    type: String
-  }
-
-}, {
-  timestamps: true
-});
-
-// Prevent duplicate patient per clinic
-patientSchema.index({ clinicId: 1, phone: 1 }, { unique: true });
-
-module.exports = mongoose.model('Patient', patientSchema);
+module.exports = mongoose.model('Patient', PatientSchema);
