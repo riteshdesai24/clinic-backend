@@ -1,61 +1,48 @@
 const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+const logger = require('../utils/logger');
 
-/**
- * ============================
- * AUTH PROTECT
- * ============================
- */
-exports.protect = (req, res, next) => {
+exports.protect = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authorization token required'
-      });
+      return res.status(401).json({ success: false, message: 'Not authorized' });
     }
 
     const token = authHeader.split(' ')[1];
-
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // ✅ Attach everything in one place
-    req.user = {
-      id: decoded.userId,
-      role: decoded.role,
-      clinicId: decoded.clinicId
-    };
+    const user = await User.findById(decoded.userId).select('-password -resetPasswordToken -resetPasswordExpire');
 
-    // optional shortcut (if you like)
-    req.clinicId = decoded.clinicId;
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'User no longer exists' });
+    }
 
+    if (!user.isActive) {
+      return res.status(403).json({ success: false, message: 'Account is deactivated' });
+    }
+
+    req.user = user;
     next();
 
   } catch (error) {
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid or expired token'
-    });
+    logger.error('Auth Middleware Error', { error: error.message });
+    return res.status(401).json({ success: false, message: 'Invalid or expired token' });
   }
 };
 
-
-/**
- * ============================
- * ROLE BASED ACCESS
- * ============================
- */
-exports.allowRoles = (...roles) => {
+// ✅ Both names exported — works with any route file
+exports.authorize = (...roles) => {
   return (req, res, next) => {
-
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!roles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied'
+        message: `Role '${req.user.role}' is not authorized`
       });
     }
-
     next();
   };
 };
+
+exports.allowRoles = exports.authorize; // ✅ alias so both names work

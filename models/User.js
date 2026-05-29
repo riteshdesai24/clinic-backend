@@ -5,41 +5,65 @@ const UserSchema = new mongoose.Schema(
     clinicId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Clinic',
+      index: true
     },
 
-    staffname: String,
+    staffname: {
+      type: String,
+      trim: true
+    },
 
     email: {
       type: String,
       unique: true,
       required: true,
+      lowercase: true,
+      trim: true
     },
 
-    phone: String,
+    phone: {
+      type: String,
+      trim: true
+    },
 
     password: {
       type: String,
       select: false,
-      required: true,
+      required: true
     },
 
     role: {
       type: String,
       enum: ['ADMIN', 'STAFF', 'DOCTOR'],
-      default: 'ADMIN',
+      default: 'ADMIN'
+    },
+
+    plan: {
+      type: String,
+      enum: ['BRONZE', 'GOLD', 'PLATINUM'],
+      default: 'GOLD' // 🔄 Change to 'BRONZE' when plan system is ready
     },
 
     // Doctor fields
-    specialization: String,
+    specialization: {
+      type: String,
+      trim: true
+    },
 
     available: {
       type: Boolean,
-      default: true,
+      default: true
     },
 
-    // 🔐 Forgot password fields
+    // Account status
+    isActive: {
+      type: Boolean,
+      default: true
+    },
+
+    // 🔐 Forgot password fields (token stored as SHA-256 hash)
     resetPasswordToken: String,
-    resetPasswordExpire: Date,
+    resetPasswordExpire: Date
   },
   { timestamps: true }
 );

@@ -1,78 +1,120 @@
+const mongoose = require('mongoose');
 const Clinic = require('../models/Clinic');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
+const validatePassword = require('../utils/validatePassword');
+const logger = require('../utils/logger');
 
-/**
- * ============================
- * REGISTER CLINIC
- * ============================
- */
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+const generateToken = (user, clinicId) => {
+  return jwt.sign(
+    {
+      userId: user._id,
+      clinicId: clinicId,
+      role: user.role,
+      plan: user.plan
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || '1d' }
+  );
+};
+
+const stripSensitiveFields = (userObj) => {
+  const { password, resetPasswordToken, resetPasswordExpire, ...safeUser } = userObj;
+  return safeUser;
+};
+
+// ─── Register Clinic ─────────────────────────────────────────────────────────
+
 exports.registerClinic = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     let { clinicName, phone, email, password } = req.body;
 
-    // ✅ CLEAN INPUT
     email = email?.trim().toLowerCase();
 
+    // ✅ Validate required fields
     if (!clinicName || !email || !password) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({
         success: false,
         message: 'clinicName, email and password are required'
       });
     }
 
-    // ✅ CHECK DUPLICATE
-    const existingUser = await User.findOne({ email });
+    // ✅ Validate password strength
+    if (!validatePassword(password)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be 8+ characters with uppercase, lowercase, number and special character'
+      });
+    }
+
+    // ✅ Check duplicate email
+    const existingUser = await User.findOne({ email }).session(session);
     if (existingUser) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(409).json({
         success: false,
         message: 'Email already registered'
       });
     }
 
-    // ✅ CREATE CLINIC
-    const clinic = await Clinic.create({ name: clinicName, phone });
+    // ✅ Create clinic
+    const [clinic] = await Clinic.create([{ name: clinicName, phone }], { session });
 
-    // ✅ HASH PASSWORD
-    const hashedPassword = bcrypt.hashSync(password, 10);
+    // ✅ Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
 
-    // ✅ CREATE USER
-    const user = await User.create({
-      clinicId: clinic._id,
-      email,
-      password: hashedPassword,
-      role: 'ADMIN'
-    });
-
-    // ✅ TOKEN
-    const token = jwt.sign(
-      { userId: user._id, clinicId: clinic._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
+    // ✅ Create admin user
+    const [user] = await User.create(
+      [
+        {
+          clinicId: clinic._id,
+          email,
+          password: hashedPassword,
+          role: 'ADMIN',
+          plan: 'GOLD' // 🔄 Change to 'BRONZE' when plan system is ready
+        }
+      ],
+      { session }
     );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    const token = generateToken(user, clinic._id);
+
+    logger.info(`New clinic registered: ${clinic._id} by user: ${user._id}`);
 
     return res.status(201).json({
       success: true,
       message: 'Clinic registered successfully',
       token,
-      clinic,
-      user: { _id: user._id, email: user.email, role: user.role }
+      clinic: { _id: clinic._id, name: clinic.name },
+      user: { _id: user._id, email: user.email, role: user.role, plan: user.plan }
     });
 
   } catch (error) {
-    console.error('Register Clinic Error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    await session.abortTransaction();
+    session.endSession();
+    logger.error('Register Clinic Error', { error: error.message, stack: error.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
-/**
- * ============================
- * LOGIN
- * ============================
- */
+// ─── Login ───────────────────────────────────────────────────────────────────
+
 exports.login = async (req, res) => {
   try {
     let { email, password } = req.body;
@@ -82,14 +124,16 @@ exports.login = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'email and password are required'
+        message: 'Email and password are required'
       });
     }
 
+    // ✅ Fetch user with password + clinic name and id only
     const user = await User.findOne({ email })
       .select('+password')
-      .populate('clinicId');
+      .populate('clinicId', 'name _id');
 
+    // ✅ Single password check (prevents timing attacks with consistent error)
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({
         success: false,
@@ -97,42 +141,39 @@ exports.login = async (req, res) => {
       });
     }
 
-    const isMatch = bcrypt.compareSync(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({
+    // ✅ Check account is active
+    if (!user.isActive) {
+      return res.status(403).json({
         success: false,
-        message: 'Invalid email or password'
+        message: 'Account is deactivated. Please contact support.'
       });
     }
 
-    const token = jwt.sign(
-      { userId: user._id, clinicId: user.clinicId._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
+    const token = generateToken(user, user.clinicId?._id);
+
+    const safeUser = stripSensitiveFields(user.toObject());
+
+    logger.info(`User logged in: ${user._id}`);
 
     return res.json({
       success: true,
       message: 'Login successful',
       token,
-      clinic: user.clinicId,
-      user: { _id: user._id, email: user.email, role: user.role }
+      clinic: user.clinicId, // { _id, name }
+      user: safeUser
     });
 
   } catch (error) {
-    console.error('Login Error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    logger.error('Login Error', { error: error.message, stack: error.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
-/**
- * ============================
- * CHANGE PASSWORD (After Login)
- * ============================
- */
+// ─── Change Password ──────────────────────────────────────────────────────────
+
 exports.changePassword = async (req, res) => {
   try {
-    const userId = req.user.id; // ✅ fixed
+    const userId = req.user._id;
     const { oldPassword, newPassword } = req.body;
 
     if (!oldPassword || !newPassword) {
@@ -142,113 +183,152 @@ exports.changePassword = async (req, res) => {
       });
     }
 
-    // Get user with password
+    // ✅ Validate new password strength
+    if (!validatePassword(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be 8+ characters with uppercase, lowercase, number and special character'
+      });
+    }
+
+    // ✅ Prevent reusing the same password
+    if (oldPassword === newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be different from old password'
+      });
+    }
+
     const user = await User.findById(userId).select('+password');
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Compare old password
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'Old password is incorrect'
-      });
+      return res.status(401).json({ success: false, message: 'Old password is incorrect' });
     }
 
-    // Hash new password
-    user.password = await bcrypt.hash(newPassword, 10);
+    user.password = await bcrypt.hash(newPassword, 12);
     await user.save();
 
-    return res.json({
-      success: true,
-      message: 'Password changed successfully'
-    });
+    logger.info(`Password changed for user: ${userId}`);
+
+    return res.json({ success: true, message: 'Password changed successfully' });
 
   } catch (error) {
-    console.error('Change Password Error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+    logger.error('Change Password Error', { error: error.message, stack: error.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
+// ─── Forgot Password ──────────────────────────────────────────────────────────
 
-/**
- * ============================
- * FORGOT PASSWORD
- * ============================
- */
 exports.forgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
+    let { email } = req.body;
+
+    email = email?.trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
 
     const user = await User.findOne({ email });
+
+    // ✅ Always return same response (prevents email enumeration)
     if (!user) {
       return res.json({
         success: true,
-        message: 'If email exists, reset link sent'
+        message: 'If that email exists, a reset link has been sent'
       });
     }
 
-    const resetToken = crypto.randomBytes(32).toString('hex');
+    // ✅ Generate raw token (sent to user) and store hashed version
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
 
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 mins
     await user.save();
 
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${rawToken}`;
 
-    res.json({
+    // ✅ Send actual email
+    await sendEmail({
+      to: user.email,
+      subject: 'Password Reset Request',
+      html: `
+        <h2>Password Reset</h2>
+        <p>You requested a password reset. Click the link below:</p>
+        <a href="${resetUrl}" target="_blank">Reset Password</a>
+        <p>This link expires in <strong>15 minutes</strong>.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+      `
+    });
+
+    logger.info(`Password reset email sent to: ${email}`);
+
+    return res.json({
       success: true,
-      message: 'Reset link generated',
-      resetUrl // remove in production
+      message: 'If that email exists, a reset link has been sent'
     });
 
   } catch (error) {
-    console.error('Forgot Password Error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    logger.error('Forgot Password Error', { error: error.message, stack: error.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
-/**
- * ============================
- * RESET PASSWORD
- * ============================
- */
+// ─── Reset Password ───────────────────────────────────────────────────────────
+
 exports.resetPassword = async (req, res) => {
   try {
     const { token } = req.params;
     const { newPassword } = req.body;
 
+    if (!token || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token and new password are required'
+      });
+    }
+
+    // ✅ Validate password strength
+    if (!validatePassword(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be 8+ characters with uppercase, lowercase, number and special character'
+      });
+    }
+
+    // ✅ Hash the incoming raw token and compare against stored hash
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
     const user = await User.findOne({
-      resetPasswordToken: token,
+      resetPasswordToken: hashedToken,
       resetPasswordExpire: { $gt: Date.now() }
     });
 
     if (!user) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid or expired token'
+        message: 'Invalid or expired reset token'
       });
     }
 
-    user.password = await bcrypt.hash(newPassword, 10);
+    user.password = await bcrypt.hash(newPassword, 12);
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
-
     await user.save();
 
-    res.json({ success: true, message: 'Password reset successful' });
+    logger.info(`Password reset successful for user: ${user._id}`);
+
+    return res.json({ success: true, message: 'Password reset successful' });
 
   } catch (error) {
-    console.error('Reset Password Error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    logger.error('Reset Password Error', { error: error.message, stack: error.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

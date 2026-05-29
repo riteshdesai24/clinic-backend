@@ -1,14 +1,19 @@
-const r = require('express').Router();
-const c = require('../controllers/auth.controller');
-const { protect } = require('../middlewares/auth'); // JWT middleware
+const express = require('express');
+const router = express.Router();
+const {
+  registerClinic,
+  login,
+  changePassword,
+  forgotPassword,
+  resetPassword
+} = require('../controllers/auth.controller');
+const { protect } = require('../middlewares/auth');
+const { authLimiter, forgotPasswordLimiter } = require('../middlewares/rateLimiter');
 
-// Public
-r.post('/register', c.registerClinic);
-r.post('/login', c.login);
-r.post('/forgot-password', c.forgotPassword);
-r.post('/reset-password/:token', c.resetPassword);
+router.post('/register', authLimiter, registerClinic);
+router.post('/login', authLimiter, login);
+router.post('/change-password', protect, changePassword);
+router.post('/forgot-password', forgotPasswordLimiter, forgotPassword);
+router.put('/reset-password/:token', resetPassword);
 
-// Protected
-r.post('/change-password', protect, c.changePassword);
-
-module.exports = r;
+module.exports = router;
