@@ -53,6 +53,11 @@ const AppointmentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null
+    },
+    cancellationReason: {
+      type: String,
+      trim: true,
+      default: null
     }
   },
   { timestamps: true }

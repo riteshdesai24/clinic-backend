@@ -331,20 +331,29 @@ exports.update = async (req, res) => {
 exports.remove = async (req, res) => {
   try {
     const { id } = req.params;
+    const { reason } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id))
       return res.status(400).json({ success: false, message: 'Invalid appointment ID' });
+
+    // ✅ Reason is required
+    if (!reason || !reason.trim())
+      return res.status(400).json({
+        success: false,
+        message: 'Cancellation reason is required'
+      });
 
     const appointment = await Appointment.findOneAndUpdate(
       {
         _id: id,
         clinicId: req.user.clinicId,
-        status: { $nin: ['CANCELLED'] }   // ✅ Idempotency guard
+        status: { $nin: ['CANCELLED'] }
       },
       {
         status: 'CANCELLED',
         cancelledAt: new Date(),
-        cancelledBy: req.user._id
+        cancelledBy: req.user._id,
+        cancellationReason: reason.trim()   // ✅ save reason
       },
       { new: true }
     )
@@ -357,21 +366,20 @@ exports.remove = async (req, res) => {
         message: 'Appointment not found or already cancelled'
       });
 
-    logger.info(`Appointment cancelled (soft delete): ${id} by user: ${req.user._id}`);
+    logger.info(`Appointment cancelled: ${id} | Reason: ${reason.trim()} | By: ${req.user._id}`);
 
-    // ✅ Notify both parties of cancellation
     const dateStr = new Date(appointment.date).toDateString();
 
     await Promise.all([
       sendWhatsApp(
         appointment.patientId.phone,
         `Hello ${appointment.patientId.name}, your appointment with Dr. ${appointment.doctorId.staffname}` +
-        ` on ${dateStr} at ${appointment.time} has been cancelled. Please contact the clinic to reschedule.`
+        ` on ${dateStr} at ${appointment.time} has been cancelled.\nReason: ${reason.trim()}\nPlease contact the clinic to reschedule.`
       ),
       sendWhatsApp(
         appointment.doctorId.phone,
         `Hello Dr. ${appointment.doctorId.staffname}, the appointment with patient` +
-        ` ${appointment.patientId.name} on ${dateStr} at ${appointment.time} has been cancelled.`
+        ` ${appointment.patientId.name} on ${dateStr} at ${appointment.time} has been cancelled.\nReason: ${reason.trim()}`
       )
     ]);
 
