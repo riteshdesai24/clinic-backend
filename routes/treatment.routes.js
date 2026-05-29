@@ -6,7 +6,7 @@ const { protect } = require('../middlewares/auth');
 r.post('/', protect, c.create);
 
 // List
-r.get('/', protect, c.list);
+r.get('/', protect, c.getAll);
 
 // Detail
 r.get('/:id', protect, c.getById);

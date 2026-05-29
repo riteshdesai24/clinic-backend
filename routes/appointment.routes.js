@@ -6,7 +6,7 @@ const { protect } = require('../middlewares/auth');
 r.post('/', protect, c.create);
 
 // List appointments (filters + pagination)
-r.get('/', protect, c.list);
+r.get('/', protect, c.getAll);
 
 // ✅ Appointment detail (VERY IMPORTANT)
 // ⚠️ MUST be AFTER r.get('/')
