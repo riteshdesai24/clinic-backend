@@ -2,14 +2,10 @@ const r = require('express').Router();
 const c = require('../controllers/appointment.controller');
 const { protect } = require('../middlewares/auth');
 
-// Create appointment
-r.post('/', protect, c.create);
-
-// List appointments (filters + pagination)
-r.get('/', protect, c.getAll);
-
-// ✅ Appointment detail (VERY IMPORTANT)
-// ⚠️ MUST be AFTER r.get('/')
-r.get('/:id', protect, c.getById);
+r.post('/',    protect, c.create);   // Create
+r.get('/',     protect, c.getAll);   // List
+r.get('/:id',  protect, c.getById);  // Detail  ← must stay after r.get('/')
+r.put('/:id',  protect, c.update);   // Update
+r.delete('/:id', protect, c.remove); // Soft-delete (cancel)
 
 module.exports = r;
