@@ -2,7 +2,7 @@ const Patient = require('../models/Patient');
 const Appointment = require('../models/Appointment');
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
-
+ 
 // ─── Create Patient ───────────────────────────────────────────────────────────
 
 exports.create = async (req, res) => {
