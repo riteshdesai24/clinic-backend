@@ -74,18 +74,23 @@ exports.registerClinic = async (req, res) => {
     logger.info(`New clinic registered: admin user ${user._id}`);
 
     return res.status(201).json({
-      success: true,
-      message: 'Clinic registered successfully',
-      token,
-      user: {
-        _id: user._id,
-        clinicName: user.clinicName,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        plan: user.plan
-      }
-    });
+    success: true,
+    message: 'Clinic registered successfully',
+    token,
+    clinic: {                        // ✅ Add this — matches login shape
+      _id: user._id,
+      clinicName: user.clinicName,
+      plan: user.plan
+    },
+    user: {
+      _id: user._id,
+      clinicName: user.clinicName,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      plan: user.plan
+    }
+  });
 
   } catch (error) {
     logger.error('Register Clinic Error', { error: error.message, stack: error.stack });

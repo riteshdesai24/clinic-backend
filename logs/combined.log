@@ -1,2 +1,23 @@
 {"level":"info","message":"Server running on port 3000","timestamp":"2026-05-29T06:29:08.200Z"}
 {"level":"info","message":"MongoDB connected","timestamp":"2026-05-29T06:29:08.972Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-05-31T05:56:09.295Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-05-31T05:56:12.382Z"}
+{"level":"info","message":"User logged in: 6a16a411cb66e4aa783c08f1 role: ADMIN","timestamp":"2026-05-31T05:59:31.594Z"}
+{"level":"info","message":"User logged in: 6a16a411cb66e4aa783c08f1 role: ADMIN","timestamp":"2026-05-31T06:04:47.228Z"}
+{"level":"info","message":"New clinic registered: admin user 6a1bcff5f50d7a73a39f5e34","timestamp":"2026-05-31T06:06:45.095Z"}
+{"level":"info","message":"New clinic registered: admin user 6a1bd200f50d7a73a39f5e37","timestamp":"2026-05-31T06:15:28.784Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-05-31T06:15:55.566Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-05-31T06:15:56.003Z"}
+{"level":"info","message":"User logged in: 6a1bd200f50d7a73a39f5e37 role: ADMIN","timestamp":"2026-05-31T06:21:29.811Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-05-31T07:05:22.632Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-05-31T07:05:24.069Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-05-31T07:23:18.740Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-05-31T07:23:19.443Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-05-31T07:26:31.330Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-05-31T07:26:31.698Z"}
+{"level":"info","message":"DOCTOR created: 6a1be2ac3cd7f4ec466c6155 for clinic: 6a1bd200f50d7a73a39f5e37","timestamp":"2026-05-31T07:26:36.530Z"}
+{"level":"info","message":"Email sent to rdesai2496@gmail.com","timestamp":"2026-05-31T07:26:40.704Z"}
+{"level":"info","message":"Email sent to riteshdesai24@gmail.com","timestamp":"2026-05-31T07:26:41.463Z"}
+{"level":"info","message":"STAFF created: 6a1be7913cd7f4ec466c6186 for clinic: 6a1bd200f50d7a73a39f5e37","timestamp":"2026-05-31T07:47:29.818Z"}
+{"level":"info","message":"Email sent to dishavichare10@gmail.com","timestamp":"2026-05-31T07:47:34.040Z"}
+{"level":"info","message":"Email sent to riteshdesai24@gmail.com","timestamp":"2026-05-31T07:47:34.600Z"}
