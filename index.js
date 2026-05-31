@@ -27,6 +27,7 @@ app.use(xss());           // prevents XSS
 // ✅ CORS — kept your existing origins + dynamic production origin
 app.use(cors({
   origin: [
+    'https://clinic-frontend-6swn.onrender.com',
     'http://localhost:4200',
     'https://your-frontend.netlify.app',
     process.env.FRONTEND_URL
