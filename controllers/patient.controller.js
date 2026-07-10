@@ -2,24 +2,78 @@ const Patient = require('../models/Patient');
 const Appointment = require('../models/Appointment');
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
- 
+
+// Fields the client is allowed to set. Keeps req.body from silently writing
+// clinicId, isActive, timestamps, etc. via a stray extra key.
+const ALLOWED_FIELDS = [
+  'title', 'firstName', 'middleName', 'lastName', 'suffix',
+  'gender', 'dob', 'age', 'maritalStatus',
+
+  'phone', 'email', 'whatsappNumber', 'otherMobile', 'workEmail',
+  'landlineNumber', 'areaCode',
+  'emergencyContactName', 'emergencyContactNumber',
+  'spouseName', 'spouseContactNumber', 'generalPractitioner',
+
+  'address1', 'address2', 'address3', 'locality', 'city', 'state',
+  'country', 'pincode',
+
+  'medicalAllergies', 'medicalConditions', 'dentalConditions',
+  'currentMedications', 'allergicTo', 'habits',
+
+  'insuranceCompany', 'insuranceSubCompany', 'insurancePolicy',
+  'insuranceIdNumber',
+
+  'language', 'religion', 'occupation', 'ethnicGroup', 'race',
+  'bloodGroup', 'discProfile'
+];
+
+function pickAllowed(body) {
+  const out = {};
+  for (const key of ALLOWED_FIELDS) {
+    if (body[key] !== undefined) out[key] = body[key];
+  }
+  return out;
+}
+
+function sanitize(data) {
+  if (data.firstName) data.firstName = data.firstName.trim();
+  if (data.lastName) data.lastName = data.lastName.trim();
+  if (data.middleName) data.middleName = data.middleName.trim();
+  if (data.phone) data.phone = data.phone.trim();
+  if (data.email) data.email = data.email.trim().toLowerCase();
+  if (data.workEmail) data.workEmail = data.workEmail.trim().toLowerCase();
+  if (data.gender) data.gender = data.gender.toUpperCase();
+  if (data.maritalStatus) data.maritalStatus = data.maritalStatus.toUpperCase();
+
+  // p-multiSelect sends arrays already; guard against a stray string anyway
+  if (data.medicalConditions && !Array.isArray(data.medicalConditions)) {
+    data.medicalConditions = [data.medicalConditions];
+  }
+  if (data.dentalConditions && !Array.isArray(data.dentalConditions)) {
+    data.dentalConditions = [data.dentalConditions];
+  }
+
+  return data;
+}
+
+const PHONE_REGEX = /^[0-9+\-\s()]{7,15}$/;
+
 // ─── Create Patient ───────────────────────────────────────────────────────────
 
 exports.create = async (req, res) => {
   try {
-    const { name, age, gender, phone, email, address, medicalHistory } = req.body;
+    const data = sanitize(pickAllowed(req.body));
 
-    // ✅ Validate required fields
-    if (!name || !phone) {
+    // ✅ Validate required fields — matches patientForm required validators
+    if (!data.firstName || !data.lastName || !data.phone) {
       return res.status(400).json({
         success: false,
-        message: 'Name and phone are required'
+        message: 'First name, last name and phone are required'
       });
     }
 
     // ✅ Phone format check (basic)
-    const phoneRegex = /^[0-9+\-\s()]{7,15}$/;
-    if (!phoneRegex.test(phone)) {
+    if (!PHONE_REGEX.test(data.phone)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid phone number format'
@@ -28,8 +82,8 @@ exports.create = async (req, res) => {
 
     // ✅ Duplicate check — phone unique per clinic
     const exists = await Patient.findOne({
-      clinicId: req.user.clinicId,
-      phone: phone.trim()
+      clinicId: req.clinicId,
+      phone: data.phone
     });
     if (exists) {
       return res.status(409).json({
@@ -39,17 +93,11 @@ exports.create = async (req, res) => {
     }
 
     const patient = await Patient.create({
-      clinicId: req.user.clinicId, // ✅ from token
-      name: name.trim(),
-      age,
-      gender: gender?.toUpperCase(),
-      phone: phone.trim(),
-      email: email?.trim().toLowerCase(),
-      address: address?.trim(),
-      medicalHistory: medicalHistory?.trim()
+      ...data,
+      clinicId: req.clinicId // ✅ from token, never trust body
     });
 
-    logger.info(`Patient created: ${patient._id} for clinic: ${req.user.clinicId}`);
+    logger.info(`Patient created: ${patient._id} for clinic: ${req.clinicId}`);
 
     return res.status(201).json({
       success: true,
@@ -74,15 +122,18 @@ exports.getAll = async (req, res) => {
     const pageLimit = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
 
     const query = {
-      clinicId: req.user.clinicId, // ✅ scoped to clinic
+      clinicId: req.clinicId, // ✅ scoped to clinic
       isActive: true
     };
 
     if (search) {
+      const term = search.trim();
       query.$or = [
-        { name: { $regex: search.trim(), $options: 'i' } },
-        { phone: { $regex: search.trim(), $options: 'i' } },
-        { email: { $regex: search.trim(), $options: 'i' } }
+        { firstName: { $regex: term, $options: 'i' } },
+        { lastName: { $regex: term, $options: 'i' } },
+        { phone: { $regex: term, $options: 'i' } },
+        { email: { $regex: term, $options: 'i' } },
+        { workEmail: { $regex: term, $options: 'i' } }
       ];
     }
 
@@ -121,7 +172,7 @@ exports.getById = async (req, res) => {
 
     const patient = await Patient.findOne({
       _id: id,
-      clinicId: req.user.clinicId // ✅ clinic-scoped
+      clinicId: req.clinicId // ✅ clinic-scoped
     });
 
     if (!patient) {
@@ -130,10 +181,10 @@ exports.getById = async (req, res) => {
 
     // ✅ Fetch appointment stats for this patient
     const [total, completed, pending, cancelled] = await Promise.all([
-      Appointment.countDocuments({ clinicId: req.user.clinicId, patientId: id }),
-      Appointment.countDocuments({ clinicId: req.user.clinicId, patientId: id, status: 'COMPLETED' }),
-      Appointment.countDocuments({ clinicId: req.user.clinicId, patientId: id, status: 'PENDING' }),
-      Appointment.countDocuments({ clinicId: req.user.clinicId, patientId: id, status: 'CANCELLED' })
+      Appointment.countDocuments({ clinicId: req.clinicId, patientId: id }),
+      Appointment.countDocuments({ clinicId: req.clinicId, patientId: id, status: 'COMPLETED' }),
+      Appointment.countDocuments({ clinicId: req.clinicId, patientId: id, status: 'PENDING' }),
+      Appointment.countDocuments({ clinicId: req.clinicId, patientId: id, status: 'CANCELLED' })
     ]);
 
     return res.json({
@@ -160,20 +211,18 @@ exports.update = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid patient ID' });
     }
 
-    // ✅ Prevent clinicId from being changed
-    const { clinicId, ...safeUpdates } = req.body;
+    // ✅ Only whitelisted, sanitized fields — clinicId can never be overwritten
+    const safeUpdates = sanitize(pickAllowed(req.body));
 
     // ✅ Validate phone if being updated
     if (safeUpdates.phone) {
-      safeUpdates.phone = safeUpdates.phone.trim();
-      const phoneRegex = /^[0-9+\-\s()]{7,15}$/;
-      if (!phoneRegex.test(safeUpdates.phone)) {
+      if (!PHONE_REGEX.test(safeUpdates.phone)) {
         return res.status(400).json({ success: false, message: 'Invalid phone number format' });
       }
 
       // ✅ Check phone not taken by another patient in same clinic
       const phoneExists = await Patient.findOne({
-        clinicId: req.user.clinicId,
+        clinicId: req.clinicId,
         phone: safeUpdates.phone,
         _id: { $ne: id }
       });
@@ -182,12 +231,8 @@ exports.update = async (req, res) => {
       }
     }
 
-    if (safeUpdates.gender) safeUpdates.gender = safeUpdates.gender.toUpperCase();
-    if (safeUpdates.email) safeUpdates.email = safeUpdates.email.trim().toLowerCase();
-    if (safeUpdates.name) safeUpdates.name = safeUpdates.name.trim();
-
     const patient = await Patient.findOneAndUpdate(
-      { _id: id, clinicId: req.user.clinicId },
+      { _id: id, clinicId: req.clinicId },
       safeUpdates,
       { new: true, runValidators: true }
     );
@@ -222,7 +267,7 @@ exports.remove = async (req, res) => {
 
     // ✅ Block deletion if patient has appointments
     const appointmentCount = await Appointment.countDocuments({
-      clinicId: req.user.clinicId,
+      clinicId: req.clinicId,
       patientId: id
     });
 
@@ -235,7 +280,7 @@ exports.remove = async (req, res) => {
 
     const patient = await Patient.findOneAndDelete({
       _id: id,
-      clinicId: req.user.clinicId
+      clinicId: req.clinicId
     });
 
     if (!patient) {

@@ -166,6 +166,83 @@ exports.getAll = async (req, res) => {
   }
 };
 
+// ─── Get Treatments By Doctor (Dentist) ───────────────────────────────────────
+
+exports.getByDoctor = async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      patientId,
+      appointmentId
+    } = req.query;
+
+    if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+      return res.status(400).json({ success: false, message: 'Invalid doctorId' });
+    }
+
+    // If a doctor is requesting, ensure they only access their own records
+    if (req.user.role === 'DOCTOR' && req.user._id.toString() !== doctorId) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    const pageNum = Math.max(parseInt(page) || 1, 1);
+    const pageLimit = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
+
+    const query = {
+      clinicId: req.user.clinicId,
+      doctorId
+    };
+
+    if (patientId) {
+      if (!mongoose.Types.ObjectId.isValid(patientId)) {
+        return res.status(400).json({ success: false, message: 'Invalid patientId' });
+      }
+      query.patientId = patientId;
+    }
+
+    if (appointmentId) {
+      if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
+        return res.status(400).json({ success: false, message: 'Invalid appointmentId' });
+      }
+      query.appointmentId = appointmentId;
+    }
+
+    if (search) {
+      query.$or = [
+        { diagnosis: { $regex: search.trim(), $options: 'i' } },
+        { notes: { $regex: search.trim(), $options: 'i' } }
+      ];
+    }
+
+    const [data, count] = await Promise.all([
+      Treatment.find(query)
+        .populate('patientId', 'name phone age gender')
+        .populate('doctorId', 'staffname specialization')
+        .populate('appointmentId', 'date status notes')
+        .sort({ createdAt: -1 })
+        .skip((pageNum - 1) * pageLimit)
+        .limit(pageLimit),
+      Treatment.countDocuments(query)
+    ]);
+
+    return res.json({
+      success: true,
+      page: pageNum,
+      limit: pageLimit,
+      totalPages: Math.ceil(count / pageLimit),
+      count,
+      data
+    });
+
+  } catch (err) {
+    logger.error('Get Treatments By Doctor Error', { error: err.message, stack: err.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 // ─── Get Treatment By ID ──────────────────────────────────────────────────────
 
 exports.getById = async (req, res) => {

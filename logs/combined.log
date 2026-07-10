@@ -21,3 +21,46 @@
 {"level":"info","message":"STAFF created: 6a1be7913cd7f4ec466c6186 for clinic: 6a1bd200f50d7a73a39f5e37","timestamp":"2026-05-31T07:47:29.818Z"}
 {"level":"info","message":"Email sent to dishavichare10@gmail.com","timestamp":"2026-05-31T07:47:34.040Z"}
 {"level":"info","message":"Email sent to riteshdesai24@gmail.com","timestamp":"2026-05-31T07:47:34.600Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-07-06T05:06:41.479Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-07-06T05:06:44.147Z"}
+{"level":"info","message":"User logged in: 6a1bd200f50d7a73a39f5e37 role: ADMIN","timestamp":"2026-07-06T05:06:46.772Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-07-06T05:08:21.323Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-07-06T05:08:21.780Z"}
+{"error":"Patient validation failed: clinicId: Path `clinicId` is required.","level":"error","message":"Create Patient Error","stack":"ValidationError: Patient validation failed: clinicId: Path `clinicId` is required.\n    at Document.invalidate (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongoose/lib/document.js:3381:32)\n    at /Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongoose/lib/document.js:3142:17\n    at /Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongoose/lib/schemaType.js:1443:9\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)","timestamp":"2026-07-06T05:20:50.594Z"}
+{"level":"info","message":"User logged in: 6a1bd200f50d7a73a39f5e37 role: ADMIN","timestamp":"2026-07-06T06:01:49.813Z"}
+{"level":"info","message":"User logged in: 6a1bd200f50d7a73a39f5e37 role: ADMIN","timestamp":"2026-07-06T06:02:24.068Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-07-06T06:10:39.900Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-07-06T06:10:40.322Z"}
+{"level":"info","message":"User logged in: 6a1bd200f50d7a73a39f5e37 role: ADMIN","timestamp":"2026-07-06T06:11:10.010Z"}
+{"error":"Patient validation failed: clinicId: Path `clinicId` is required.","level":"error","message":"Create Patient Error","stack":"ValidationError: Patient validation failed: clinicId: Path `clinicId` is required.\n    at Document.invalidate (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongoose/lib/document.js:3381:32)\n    at /Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongoose/lib/document.js:3142:17\n    at /Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongoose/lib/schemaType.js:1443:9\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)","timestamp":"2026-07-06T06:13:35.532Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-07-06T06:14:38.652Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-07-06T06:14:39.118Z"}
+{"error":"Patient validation failed: clinicId: Path `clinicId` is required.","level":"error","message":"Create Patient Error","stack":"ValidationError: Patient validation failed: clinicId: Path `clinicId` is required.\n    at Document.invalidate (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongoose/lib/document.js:3381:32)\n    at /Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongoose/lib/document.js:3142:17\n    at /Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongoose/lib/schemaType.js:1443:9\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)","timestamp":"2026-07-06T06:14:44.140Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-07-06T06:17:00.534Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-07-06T06:17:01.092Z"}
+{"level":"info","message":"Patient created: 6a4b4861e1e3f9a8fd2e8d91 for clinic: 6a1bd200f50d7a73a39f5e37","timestamp":"2026-07-06T06:17:05.330Z"}
+{"level":"info","message":"Patient updated: 6a4b4861e1e3f9a8fd2e8d91 by user: 6a1bd200f50d7a73a39f5e37","timestamp":"2026-07-06T06:18:59.564Z"}
+{"level":"info","message":"Member updated: 6a1be2ac3cd7f4ec466c6155 by admin: 6a1bd200f50d7a73a39f5e37","timestamp":"2026-07-06T06:19:28.867Z"}
+{"level":"info","message":"DOCTOR created: 6a4b4919e1e3f9a8fd2e8db7 for clinic: 6a1bd200f50d7a73a39f5e37","timestamp":"2026-07-06T06:20:09.863Z"}
+{"level":"info","message":"Email sent to riteshdesai24@gmail.com","timestamp":"2026-07-06T06:20:13.996Z"}
+{"level":"info","message":"Email sent to divya@gmail.com","timestamp":"2026-07-06T06:20:14.860Z"}
+{"level":"info","message":"Member deleted: 6a1be7913cd7f4ec466c6186 by admin: 6a1bd200f50d7a73a39f5e37","timestamp":"2026-07-06T06:21:32.693Z"}
+{"level":"info","message":"STAFF created: 6a4b49a9e1e3f9a8fd2e8dc6 for clinic: 6a1bd200f50d7a73a39f5e37","timestamp":"2026-07-06T06:22:33.839Z"}
+{"level":"info","message":"Email sent to siddhishirke94@gmail.com","timestamp":"2026-07-06T06:22:38.190Z"}
+{"level":"info","message":"Email sent to riteshdesai24@gmail.com","timestamp":"2026-07-06T06:22:38.900Z"}
+{"level":"info","message":"User logged in: 6a4b49a9e1e3f9a8fd2e8dc6 role: STAFF","timestamp":"2026-07-06T06:23:25.768Z"}
+{"level":"info","message":"User logged in: 6a1bd200f50d7a73a39f5e37 role: ADMIN","timestamp":"2026-07-06T06:27:06.091Z"}
+{"level":"info","message":"User logged in: 6a4b49a9e1e3f9a8fd2e8dc6 role: STAFF","timestamp":"2026-07-06T06:28:20.890Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-07-06T09:36:42.541Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-07-06T09:36:42.943Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-07-06T10:04:40.064Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-07-06T10:04:41.114Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-07-06T10:06:01.125Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-07-06T10:06:01.514Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-07-06T11:29:37.162Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-07-06T11:29:38.109Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-07-06T11:32:38.920Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-07-06T11:32:39.358Z"}
+{"level":"info","message":"DOCTOR created: 6a4b92b3c7e6c84df89923f3 for clinic: 6a4b49a9e1e3f9a8fd2e8dc6","timestamp":"2026-07-06T11:34:11.991Z"}
+{"level":"info","message":"Email sent to test@gmail.com","timestamp":"2026-07-06T11:34:16.962Z"}
+{"level":"info","message":"Email sent to riteshdesai24@gmail.com","timestamp":"2026-07-06T11:34:17.498Z"}

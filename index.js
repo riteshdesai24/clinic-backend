@@ -41,6 +41,7 @@ app.use(express.json({
   limit: '10kb',
   verify: (req, res, buf) => { req.rawBody = buf; }
 }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // ✅ MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
@@ -64,6 +65,7 @@ app.use('/api/appointments', require('./routes/appointment.routes'));
 app.use('/api/attendance',   require('./routes/attendance.routes'));
 app.use('/api/treatments',   require('./routes/treatment.routes'));
 app.use('/api/plans',        require('./routes/plan.routes'));
+app.use('/api/insurances',   require('./routes/insurance.routes'));
 app.use('/api/payments',     require('./routes/payment.routes'));
 app.use('/api/webhooks',     require('./routes/webhook.routes'));
 

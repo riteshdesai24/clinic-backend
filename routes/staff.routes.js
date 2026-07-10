@@ -8,7 +8,7 @@ const { protect, allowRoles } = require('../middlewares/auth');
 router.post(
   '/',
   protect,
-  allowRoles('ADMIN'),
+  allowRoles('ADMIN', 'STAFF', 'DOCTOR'),
   controller.createStaff
 );
 
@@ -18,7 +18,7 @@ router.post(
 router.get(
   '/',
   protect,
-  allowRoles('ADMIN'),
+  allowRoles('ADMIN', 'STAFF', 'DOCTOR'),
   controller.listStaff
 );
 
@@ -28,7 +28,7 @@ router.get(
 router.get(
   '/:id',
   protect,
-  allowRoles('ADMIN'),
+  allowRoles('ADMIN', 'STAFF', 'DOCTOR'),
   controller.getStaffById
 );
 
@@ -38,7 +38,7 @@ router.get(
 router.put(
   '/:id',
   protect,
-  allowRoles('ADMIN'),
+  allowRoles('ADMIN', 'STAFF', 'DOCTOR'),
   controller.updateStaff
 );
 

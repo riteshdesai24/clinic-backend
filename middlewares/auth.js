@@ -24,6 +24,7 @@ exports.protect = async (req, res, next) => {
     }
 
     req.user = user;
+    req.clinicId = decoded.clinicId; // ✅ token already carries this — use it
     next();
 
   } catch (error) {

@@ -159,8 +159,9 @@ exports.createStaff = async (req, res) => {
     }
 
     // ✅ Admin is the logged-in user — use req.user._id
+    const adminId = req.user.role === 'ADMIN' ? req.user._id : req.user.clinicId;
     const admin = await User.findOne({
-      _id: req.user._id,
+      _id: adminId,
       role: 'ADMIN'
     }).select('clinicName email plan');
 

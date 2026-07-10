@@ -18,11 +18,13 @@
     "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.24.0",
+    "multer": "^2.2.0",
     "nodemailer": "^8.0.9",
     "pdfkit": "^0.15.0",
     "razorpay": "^2.9.2",
     "twilio": "^6.0.2",
     "winston": "^3.19.0",
+    "xlsx": "^0.18.5",
     "xss-clean": "^0.1.4"
   }
 }
