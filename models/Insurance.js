@@ -37,6 +37,10 @@ const insuranceSchema = new mongoose.Schema(
       type: String,
       trim: true
     },
+    coverageAmount: {
+      type: Number,
+      min: 0
+    },
     planType: {
       type: String,
       trim: true

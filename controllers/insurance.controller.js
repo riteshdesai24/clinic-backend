@@ -2,20 +2,26 @@ const Insurance = require('../models/Insurance');
 const xlsx = require('xlsx');
 
 const FIELD_ALIASES = {
+  insurername: 'insuranceCompany',
   insurancecompany: 'insuranceCompany',
   insurancesubcompany: 'insuranceSubCompany',
   insurancepolicy: 'insurancePolicy',
   insuranceidnumber: 'insuranceIdNumber',
+  company: 'companyName',
   companyname: 'companyName',
   policynumber: 'policyNumber',
   patientid: 'patientId',
+  policytype: 'coverageType',
   coveragetype: 'coverageType',
+  coverageamount: 'coverageAmount',
   plantype: 'planType',
   premiumamount: 'premiumAmount',
   startdate: 'startDate',
   enddate: 'endDate',
   holdername: 'holderName',
+  email: 'contactEmail',
   contactemail: 'contactEmail',
+  contactnumber: 'contactPhone',
   contactphone: 'contactPhone',
   address: 'address',
   status: 'status',
@@ -31,6 +37,7 @@ const SUPPORTED_FIELDS = new Set([
   'policyNumber',
   'patientId',
   'coverageType',
+  'coverageAmount',
   'planType',
   'premiumAmount',
   'startDate',
@@ -48,7 +55,7 @@ const normalizeHeader = (value) =>
 
 const parseValue = (field, value) => {
   if (value === null || value === undefined || value === '') return undefined;
-  if (field === 'premiumAmount') {
+  if (field === 'premiumAmount' || field === 'coverageAmount') {
     const parsed = parseFloat(value);
     return Number.isNaN(parsed) ? undefined : parsed;
   }
@@ -79,7 +86,7 @@ const mapRowToInsurance = (row) => {
  */
 exports.create = async (req, res) => {
   try {
-    const insurance = await Insurance.create(req.body);
+    const insurance = await Insurance.create(mapRowToInsurance(req.body));
 
     return res.status(201).json({
       success: true,
@@ -164,7 +171,7 @@ exports.update = async (req, res) => {
   try {
     const insurance = await Insurance.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      mapRowToInsurance(req.body),
       { new: true, runValidators: true }
     );
 
