@@ -101,6 +101,23 @@
       ]
     },
     {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Get my profile",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/profile" }
+        },
+        {
+          "name": "Update my profile",
+          "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"phone\":\"+15551234567\",\"email\":\"clinic.demo@example.com\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/profile" }
+        },
+        {
+          "name": "Deactivate my profile",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/profile" }
+        }
+      ]
+    },
+    {
       "name": "Staff",
       "item": [
         {
