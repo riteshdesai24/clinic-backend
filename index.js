@@ -63,6 +63,8 @@ app.use('/api/staff',        require('./routes/staff.routes'));
 app.use('/api/doctors',      require('./routes/doctor.routes'));
 app.use('/api/patients',     require('./routes/patient.routes'));
 app.use('/api/appointments',   require('./routes/appointment.routes'));
+app.use('/api/invoices',       require('./routes/invoice.routes'));
+app.use('/api/dashboard',      require('./routes/dashboardcount.routes'));
 app.use('/api/attendance',     require('./routes/attendance.routes'));
 app.use('/api/treatments',     require('./routes/treatment.routes'));
 app.use('/api/treatmentmaster', require('./routes/dentaltreatment.routes'));

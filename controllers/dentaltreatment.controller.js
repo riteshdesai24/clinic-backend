@@ -32,8 +32,7 @@ exports.create = async (req, res) => {
       }
     }
 
-    // ✅ For ADMIN: use their _id; for STAFF/DOCTOR: use their clinicId (reference to ADMIN)
-    const clinicId = req.user.role === 'ADMIN' ? req.user._id : req.user.clinicId;
+    const clinicId = req.clinicId;
 
     const treatmentMaster = await TreatmentType.create({
       clinicId,
@@ -73,7 +72,7 @@ exports.getAll = async (req, res) => {
     const pageLimit = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
 
     // ✅ Always scoped to clinic
-    const clinicId = req.user.role === 'ADMIN' ? req.user._id : req.user.clinicId;
+    const clinicId = req.clinicId;
     const query = { clinicId };
 
     if (status) {
@@ -125,7 +124,7 @@ exports.getById = async (req, res) => {
 
     const treatmentMaster = await TreatmentType.findOne({
       _id: id,
-      clinicId: req.user.clinicId // ✅ clinic-scoped
+      clinicId: req.clinicId // ✅ clinic-scoped
     });
 
     if (!treatmentMaster) {
@@ -184,7 +183,7 @@ exports.update = async (req, res) => {
     if (safeUpdates.description) safeUpdates.description = safeUpdates.description.trim();
 
     const treatmentMaster = await TreatmentType.findOneAndUpdate(
-      { _id: id, clinicId: req.user.clinicId },
+      { _id: id, clinicId: req.clinicId },
       safeUpdates,
       { new: true, runValidators: true }
     );
@@ -219,7 +218,7 @@ exports.remove = async (req, res) => {
 
     const treatmentMaster = await TreatmentType.findOneAndDelete({
       _id: id,
-      clinicId: req.user.clinicId // ✅ clinic-scoped
+      clinicId: req.clinicId // ✅ clinic-scoped
     });
 
     if (!treatmentMaster) {

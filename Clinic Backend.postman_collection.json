@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Clinic Backend API",
-    "description": "Postman requests for the clinic backend. Set baseUrl and token in collection variables. The Dashboard Counts routes are declared in the project but are not mounted in index.js, so those requests currently return 404.",
+    "description": "Postman requests for the clinic backend. Register or log in first; the returned bearer token is saved automatically.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -17,7 +17,9 @@
     { "key": "doctorId", "value": "507f1f77bcf86cd799439012" },
     { "key": "patientId", "value": "507f1f77bcf86cd799439013" },
     { "key": "appointmentId", "value": "507f1f77bcf86cd799439014" },
+    { "key": "treatmentMasterId", "value": "507f1f77bcf86cd799439017" },
     { "key": "staffId", "value": "507f1f77bcf86cd799439015" },
+    { "key": "attachmentId", "value": "507f1f77bcf86cd799439016" },
     { "key": "resetToken", "value": "replace-with-reset-token" },
     { "key": "page", "value": "1" },
     { "key": "limit", "value": "10" },
@@ -212,6 +214,22 @@
           "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"doctorId\":\"{{doctorId}}\",\"patientId\":\"{{patientId}}\",\"date\":\"2026-10-10\",\"time\":\"10:30\",\"notes\":\"Initial consultation\",\"status\":\"PENDING\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/appointments" }
         },
         {
+          "name": "Upload appointment files",
+          "request": { "method": "POST", "body": { "mode": "formdata", "formdata": [{ "key": "files", "type": "file", "src": null }] }, "url": "{{baseUrl}}/api/appointments/{{appointmentId}}/attachments" }
+        },
+        {
+          "name": "List appointment files",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/appointments/{{appointmentId}}/attachments" }
+        },
+        {
+          "name": "Download appointment file",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/appointments/{{appointmentId}}/attachments/{{attachmentId}}" }
+        },
+        {
+          "name": "Delete appointment file",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/appointments/{{appointmentId}}/attachments/{{attachmentId}}" }
+        },
+        {
           "name": "Appointment calendar",
           "request": { "method": "GET", "url": "{{baseUrl}}/api/appointments/calendar?year={{year}}&month={{month}}&doctorId={{doctorId}}" }
         },
@@ -230,6 +248,23 @@
         {
           "name": "Cancel appointment",
           "request": { "method": "DELETE", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"reason\":\"Patient requested cancellation\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/appointments/{{appointmentId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Invoices",
+      "item": [
+        {
+          "name": "Create invoice for appointment",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"appointmentId\":\"{{appointmentId}}\",\"taxAmount\":0,\"items\":[]}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/invoices" }
+        },
+        {
+          "name": "List invoices",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/invoices?page={{page}}&limit={{limit}}&appointmentId={{appointmentId}}" }
+        },
+        {
+          "name": "Record invoice payment",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"amount\":500,\"method\":\"CASH\",\"reference\":\"receipt-001\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/invoices/{{id}}/payments" }
         }
       ]
     },
@@ -275,11 +310,27 @@
       "item": [
         {
           "name": "Create treatment",
-          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"appointmentId\":\"{{appointmentId}}\",\"diagnosis\":\"Dental caries\",\"medicines\":[{\"name\":\"Example medication\",\"dose\":\"As directed\"}],\"notes\":\"Follow up if symptoms persist\",\"followUpDate\":\"2026-10-24\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/treatments" }
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"appointmentId\":\"{{appointmentId}}\",\"treatmentMasterId\":\"{{treatmentMasterId}}\",\"diagnosis\":\"Dental caries\",\"medicines\":[{\"name\":\"Example medication\",\"dose\":\"As directed\"}],\"notes\":\"Follow up if symptoms persist\",\"followUpDate\":\"2026-10-24\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/treatments" }
         },
         {
           "name": "Autocomplete treatments",
           "request": { "method": "GET", "url": "{{baseUrl}}/api/treatments/autocomplete?q={{search}}&limit={{limit}}" }
+        },
+        {
+          "name": "Upload treatment files",
+          "request": { "method": "POST", "body": { "mode": "formdata", "formdata": [{ "key": "files", "type": "file", "src": null }] }, "url": "{{baseUrl}}/api/treatments/{{id}}/attachments" }
+        },
+        {
+          "name": "List treatment files",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/treatments/{{id}}/attachments" }
+        },
+        {
+          "name": "Download treatment file",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/treatments/{{id}}/attachments/{{attachmentId}}" }
+        },
+        {
+          "name": "Delete treatment file",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/treatments/{{id}}/attachments/{{attachmentId}}" }
         },
         {
           "name": "List treatments",
@@ -308,7 +359,8 @@
       "item": [
         {
           "name": "Create treatment master (price optional)",
-          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"Consultation\",\"description\":\"Initial consultation\",\"duration\":30,\"status\":\"ACTIVE\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/treatmentmaster" }
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"Consultation\",\"description\":\"Initial consultation\",\"duration\":30,\"price\":500,\"status\":\"ACTIVE\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/treatmentmaster" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["if (pm.response.code < 300) {", "  const data = pm.response.json();", "  if (data.data?._id) pm.collectionVariables.set('treatmentMasterId', data.data._id);", "}"] } }]
         },
         {
           "name": "List treatment masters",
@@ -354,12 +406,15 @@
       ]
     },
     {
-      "name": "Dashboard Counts (not mounted)",
-      "description": "These routes are defined in routes/dashboardcount.routes.js but are not registered by index.js. Mount that router before using these requests.",
+      "name": "Dashboard",
+      "description": "Appointment status counts are clinic-wide for ADMIN/STAFF and restricted to the logged-in doctor for DOCTOR.",
       "item": [
-        { "name": "Today's appointment counts", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboardcounts/appointments/today" } },
-        { "name": "Weekly appointment counts", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboardcounts/appointments/week" } },
-        { "name": "Monthly appointment counts", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboardcounts/appointments/month" } }
+        { "name": "All appointment counts", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/appointments?period=all" } },
+        { "name": "Today's appointment counts", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/appointments?period=today" } },
+        { "name": "Weekly appointment counts", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/appointments?period=week" } },
+        { "name": "Monthly appointment counts", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/appointments?period=month" } },
+        { "name": "Invoice summary by doctor (week)", "request": { "method": "GET", "url": "{{baseUrl}}/api/invoices/dashboard/summary?period=week" } },
+        { "name": "Invoice summary by doctor (month)", "request": { "method": "GET", "url": "{{baseUrl}}/api/invoices/dashboard/summary?period=month" } }
       ]
     },
     {

@@ -160,7 +160,7 @@ exports.createStaff = async (req, res) => {
     }
 
     // ✅ Admin is the logged-in user — use req.user._id
-    const adminId = req.user.role === 'ADMIN' ? req.user._id : req.user.clinicId;
+    const adminId = req.clinicId;
     const admin = await User.findOne({
       _id: adminId,
       role: 'ADMIN'
@@ -182,7 +182,7 @@ exports.createStaff = async (req, res) => {
 
     // ✅ clinicId = admin's _id, stamped on every staff/doctor they create
     const newMember = await User.create({
-      clinicId:  req.user._id,
+      clinicId:  req.clinicId,
       staffname: staffname.trim(),
       email:     email.trim().toLowerCase(),
       phone:     phone.trim(),
@@ -195,7 +195,7 @@ exports.createStaff = async (req, res) => {
       logger.error('Welcome notification failed', { memberId: newMember._id, error: err.message });
     });
 
-    logger.info(`${role} created: ${newMember._id} for clinic: ${req.user._id}`);
+    logger.info(`${role} created: ${newMember._id} for clinic: ${req.clinicId}`);
 
     const { password: _pw, resetPasswordToken, resetPasswordExpire, ...safeData } = newMember.toObject();
 
@@ -221,7 +221,7 @@ exports.listStaff = async (req, res) => {
 
     // ✅ Filter by specific role if provided, otherwise return both
     const query = {
-      clinicId: req.user._id,
+      clinicId: req.clinicId,
       role: role && ALLOWED_ROLES.includes(role)
         ? role
         : { $in: ALLOWED_ROLES }
@@ -320,7 +320,7 @@ exports.getStaffById = async (req, res) => {
 
     const member = await User.findOne({
       _id: id,
-      clinicId: req.user._id,
+      clinicId: req.clinicId,
       role: { $in: ALLOWED_ROLES }
     }).select('-password -resetPasswordToken -resetPasswordExpire');
 
@@ -368,7 +368,7 @@ exports.updateStaff = async (req, res) => {
     }
 
     const member = await User.findOneAndUpdate(
-      { _id: id, clinicId: req.user._id, role: { $in: ALLOWED_ROLES } },
+      { _id: id, clinicId: req.clinicId, role: { $in: ALLOWED_ROLES } },
       safeUpdates,
       { new: true, runValidators: true }
     ).select('-password -resetPasswordToken -resetPasswordExpire');
@@ -399,7 +399,7 @@ exports.deleteStaff = async (req, res) => {
 
     const member = await User.findOneAndDelete({
       _id: id,
-      clinicId: req.user._id,
+      clinicId: req.clinicId,
       role: { $in: ALLOWED_ROLES }
     });
 

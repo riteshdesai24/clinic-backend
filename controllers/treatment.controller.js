@@ -1,6 +1,9 @@
 const Treatment = require('../models/Treatment');
 const Appointment = require('../models/Appointment');
 const Patient = require('../models/Patient');
+const Attachment = require('../models/Attachment');
+const Invoice = require('../models/Invoice');
+const TreatmentType = require('../models/TreatmentType');
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 const { parseAutocompleteQuery } = require('../utils/autocomplete');
@@ -9,10 +12,10 @@ const { parseAutocompleteQuery } = require('../utils/autocomplete');
 
 exports.create = async (req, res) => {
   try {
-    const { appointmentId, diagnosis, medicines, notes, followUpDate } = req.body;
+    const { appointmentId, treatmentMasterId, diagnosis, medicines, notes, followUpDate } = req.body;
 
     // ✅ Validate required fields
-    if (!appointmentId || !diagnosis) {
+    if (!appointmentId || typeof diagnosis !== 'string' || !diagnosis.trim()) {
       return res.status(400).json({
         success: false,
         message: 'appointmentId and diagnosis are required'
@@ -26,11 +29,19 @@ exports.create = async (req, res) => {
     // ✅ Fetch appointment — must belong to this clinic
     const appointment = await Appointment.findOne({
       _id: appointmentId,
-      clinicId: req.user.clinicId
+      clinicId: req.clinicId
     });
 
     if (!appointment) {
       return res.status(404).json({ success: false, message: 'Appointment not found' });
+    }
+
+    if (appointment.status === 'CANCELLED') {
+      return res.status(409).json({ success: false, message: 'Cannot record treatment for a cancelled appointment' });
+    }
+
+    if (req.user.role === 'DOCTOR' && appointment.doctorId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'You can only record treatment for your own appointments' });
     }
 
     // ✅ Prevent duplicate treatment for same appointment
@@ -39,6 +50,21 @@ exports.create = async (req, res) => {
         success: false,
         message: 'Treatment already exists for this appointment'
       });
+    }
+
+    let treatmentMaster;
+    if (treatmentMasterId) {
+      if (!mongoose.Types.ObjectId.isValid(treatmentMasterId)) {
+        return res.status(400).json({ success: false, message: 'Invalid treatmentMasterId' });
+      }
+      treatmentMaster = await TreatmentType.findOne({
+        _id: treatmentMasterId,
+        clinicId: req.clinicId,
+        status: 'ACTIVE'
+      });
+      if (!treatmentMaster) {
+        return res.status(404).json({ success: false, message: 'Active treatment master not found' });
+      }
     }
 
     // ✅ Validate medicines array if provided
@@ -58,24 +84,47 @@ exports.create = async (req, res) => {
     }
 
     const treatment = await Treatment.create({
-      clinicId: req.user.clinicId,          // ✅ from token
+      clinicId: req.clinicId,          // ✅ from token
       appointmentId,
       patientId: appointment.patientId,      // ✅ pulled from appointment
       doctorId: appointment.doctorId,        // ✅ pulled from appointment
+      treatmentMasterId: treatmentMaster?._id,
+      treatmentName: treatmentMaster?.name,
+      treatmentPrice: treatmentMaster?.price,
       diagnosis: diagnosis.trim(),
       medicines: medicines || [],
       notes: notes?.trim(),
       followUpDate: followUpDate ? new Date(followUpDate) : undefined
     });
 
-    // ✅ Link treatment back to appointment
-    await Appointment.findByIdAndUpdate(appointmentId, {
-      treatmentId: treatment._id,
-      status: 'COMPLETED' // ✅ auto-complete appointment when treatment is added
-    });
+    // Claim the appointment once so concurrent requests cannot leave multiple treatments linked.
+    let linkedAppointment;
+    try {
+      linkedAppointment = await Appointment.findOneAndUpdate(
+        {
+          _id: appointmentId,
+          clinicId: req.clinicId,
+          doctorId: appointment.doctorId,
+          patientId: appointment.patientId,
+          treatmentId: null,
+          status: { $ne: 'CANCELLED' }
+        },
+        { treatmentId: treatment._id, status: 'COMPLETED' },
+        { new: true }
+      );
+    } catch (linkError) {
+      await Treatment.deleteOne({ _id: treatment._id, clinicId: req.clinicId });
+      throw linkError;
+    }
+
+    if (!linkedAppointment) {
+      await Treatment.deleteOne({ _id: treatment._id, clinicId: req.clinicId });
+      return res.status(409).json({ success: false, message: 'Appointment already has a treatment or is cancelled' });
+    }
 
     // ✅ Populate for response
     const populated = await Treatment.findById(treatment._id)
+      .populate('treatmentMasterId', 'name description duration price')
       .populate('patientId', 'name phone age gender')
       .populate('doctorId', 'staffname specialization')
       .populate('appointmentId', 'date status notes');
@@ -111,7 +160,7 @@ exports.getAll = async (req, res) => {
     const pageLimit = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
 
     // ✅ Always scoped to clinic
-    const query = { clinicId: req.user.clinicId };
+    const query = { clinicId: req.clinicId };
 
     if (patientId) {
       if (!mongoose.Types.ObjectId.isValid(patientId)) {
@@ -237,7 +286,7 @@ exports.getByDoctor = async (req, res) => {
     const pageLimit = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
 
     const query = {
-      clinicId: req.user.clinicId,
+      clinicId: req.clinicId,
       doctorId
     };
 
@@ -300,7 +349,7 @@ exports.getById = async (req, res) => {
 
     const treatment = await Treatment.findOne({
       _id: id,
-      clinicId: req.user.clinicId // ✅ clinic-scoped
+      clinicId: req.clinicId // ✅ clinic-scoped
     })
       .populate('patientId', 'name phone age gender email address medicalHistory')
       .populate('doctorId', 'staffname specialization phone email')
@@ -334,6 +383,9 @@ exports.update = async (req, res) => {
       appointmentId,
       patientId,
       doctorId,
+      treatmentMasterId,
+      treatmentName,
+      treatmentPrice,
       ...safeUpdates
     } = req.body;
 
@@ -353,7 +405,7 @@ exports.update = async (req, res) => {
     if (safeUpdates.notes) safeUpdates.notes = safeUpdates.notes.trim();
 
     const treatment = await Treatment.findOneAndUpdate(
-      { _id: id, clinicId: req.user.clinicId },
+      { _id: id, clinicId: req.clinicId },
       safeUpdates,
       { new: true, runValidators: true }
     )
@@ -389,14 +441,30 @@ exports.remove = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid treatment ID' });
     }
 
-    const treatment = await Treatment.findOneAndDelete({
-      _id: id,
-      clinicId: req.user.clinicId // ✅ clinic-scoped
-    });
+    const treatment = await Treatment.findOne({ _id: id, clinicId: req.clinicId });
 
     if (!treatment) {
       return res.status(404).json({ success: false, message: 'Treatment not found' });
     }
+
+    const invoiceExists = await Invoice.exists({
+      clinicId: req.clinicId,
+      $or: [
+        { treatmentId: treatment._id },
+        { appointmentId: treatment.appointmentId }
+      ]
+    });
+    if (invoiceExists) {
+      return res.status(409).json({ success: false, message: 'Cannot delete a treatment with an invoice' });
+    }
+
+    await Treatment.deleteOne({ _id: treatment._id, clinicId: req.clinicId });
+
+    await Attachment.deleteMany({
+      clinicId: req.clinicId,
+      recordType: 'treatment',
+      recordId: treatment._id
+    });
 
     // ✅ Unlink treatment from appointment and revert status
     await Appointment.findByIdAndUpdate(treatment.appointmentId, {

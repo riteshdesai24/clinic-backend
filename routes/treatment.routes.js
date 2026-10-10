@@ -1,9 +1,17 @@
 const r = require('express').Router();
 const c = require('../controllers/treatment.controller');
+const Treatment = require('../models/Treatment');
+const attachmentUpload = require('../middlewares/attachmentUpload');
+const createAttachmentController = require('../controllers/recordAttachment.controller');
 const { protect, allowRoles } = require('../middlewares/auth');
+const attachments = createAttachmentController(Treatment, 'treatment');
 
 // Create
 r.post('/', protect, c.create);
+r.post('/:id/attachments', protect, attachmentUpload, attachments.upload);
+r.get('/:id/attachments', protect, attachments.list);
+r.get('/:id/attachments/:attachmentId', protect, attachments.download);
+r.delete('/:id/attachments/:attachmentId', protect, attachments.remove);
 
 // List
 r.get('/autocomplete', protect, c.autocomplete);

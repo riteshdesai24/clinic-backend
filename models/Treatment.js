@@ -40,6 +40,21 @@ const TreatmentSchema = new mongoose.Schema(
       index: true
     },
 
+    treatmentMasterId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'TreatmentType'
+    },
+
+    treatmentName: {
+      type: String,
+      trim: true
+    },
+
+    treatmentPrice: {
+      type: Number,
+      min: 0
+    },
+
     diagnosis: {
       type: String,
       required: true,

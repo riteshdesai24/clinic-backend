@@ -57,13 +57,18 @@ exports.create = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid date format' });
 
     // ✅ Validate time format HH:MM
-    if (!/^\d{2}:\d{2}$/.test(time))
-      return res.status(400).json({ success: false, message: 'Time must be in HH:MM format' });
+    if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time))
+      return res.status(400).json({ success: false, message: 'Time must be a valid 24-hour time in HH:MM format' });
+
+    const appointmentStatus = String(status || 'PENDING').toUpperCase();
+    if (!['PENDING', 'CONFIRMED'].includes(appointmentStatus)) {
+      return res.status(400).json({ success: false, message: 'New appointments must be PENDING or CONFIRMED' });
+    }
 
     // ✅ Verify doctor belongs to this clinic
     const doctor = await User.findOne({
       _id: doctorId,
-      clinicId: req.user.clinicId,
+      clinicId: req.clinicId,
       role: 'DOCTOR',
       isActive: true
     });
@@ -73,7 +78,7 @@ exports.create = async (req, res) => {
     // ✅ Verify patient belongs to this clinic
     const patient = await Patient.findOne({
       _id: patientId,
-      clinicId: req.user.clinicId,
+      clinicId: req.clinicId,
       isActive: true
     });
     if (!patient)
@@ -81,7 +86,7 @@ exports.create = async (req, res) => {
 
     // ✅ Conflict check: same doctor, same date+time, not cancelled
     const conflict = await Appointment.findOne({
-      clinicId: req.user.clinicId,
+      clinicId: req.clinicId,
       doctorId,
       date: appointmentDate,
       time,
@@ -94,20 +99,20 @@ exports.create = async (req, res) => {
       });
 
     const appointment = await Appointment.create({
-      clinicId: req.user.clinicId,
+      clinicId: req.clinicId,
       doctorId,
       patientId,
       date: appointmentDate,
       time,
       notes: notes?.trim(),
-      status: status || 'PENDING'
+      status: appointmentStatus
     });
 
     const populated = await Appointment.findById(appointment._id)
       .populate('doctorId', 'staffname specialization phone')
       .populate('patientId', 'name phone');
 
-    logger.info(`Appointment created: ${appointment._id} for clinic: ${req.user.clinicId}`);
+    logger.info(`Appointment created: ${appointment._id} for clinic: ${req.clinicId}`);
 
     // ✅ Send WhatsApp to patient and doctor
     const dateStr = appointmentDate.toDateString();
@@ -145,9 +150,11 @@ exports.getAll = async (req, res) => {
     const pageNum = Math.max(parseInt(page) || 1, 1);
     const pageLimit = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
 
-    const query = { clinicId: req.user.clinicId };
+    const query = { clinicId: req.clinicId };
 
-    if (doctorId) {
+    if (req.user.role === 'DOCTOR') {
+      query.doctorId = req.user._id;
+    } else if (doctorId) {
       if (!mongoose.Types.ObjectId.isValid(doctorId))
         return res.status(400).json({ success: false, message: 'Invalid doctorId' });
       query.doctorId = doctorId;
@@ -220,7 +227,7 @@ exports.getById = async (req, res) => {
 
     const appointment = await Appointment.findOne({
       _id: id,
-      clinicId: req.user.clinicId
+      clinicId: req.clinicId
     })
       .populate('doctorId', 'staffname specialization phone email')
       .populate('patientId', 'name phone age gender email address medicalHistory')
@@ -252,6 +259,38 @@ exports.update = async (req, res) => {
     // ✅ Strip fields that must never be changed via this endpoint
     const { clinicId, treatmentId, cancelledAt, cancelledBy, ...safeUpdates } = req.body;
 
+    const existingAppointment = await Appointment.findOne({ _id: id, clinicId: req.clinicId });
+    if (!existingAppointment) {
+      return res.status(404).json({ success: false, message: 'Appointment not found' });
+    }
+
+    if (safeUpdates.doctorId) {
+      if (!mongoose.Types.ObjectId.isValid(safeUpdates.doctorId)) {
+        return res.status(400).json({ success: false, message: 'Invalid doctorId' });
+      }
+      const doctor = await User.findOne({
+        _id: safeUpdates.doctorId,
+        clinicId: req.clinicId,
+        role: 'DOCTOR',
+        isActive: true
+      }).select('_id');
+      if (!doctor) return res.status(404).json({ success: false, message: 'Doctor not found in this clinic' });
+      if (existingAppointment.treatmentId && doctor._id.toString() !== existingAppointment.doctorId.toString()) {
+        return res.status(409).json({ success: false, message: 'Cannot reassign an appointment after treatment is recorded' });
+      }
+    }
+
+    if (safeUpdates.patientId) {
+      if (!mongoose.Types.ObjectId.isValid(safeUpdates.patientId)) {
+        return res.status(400).json({ success: false, message: 'Invalid patientId' });
+      }
+      const patient = await Patient.findOne({ _id: safeUpdates.patientId, clinicId: req.clinicId, isActive: true }).select('_id');
+      if (!patient) return res.status(404).json({ success: false, message: 'Patient not found in this clinic' });
+      if (existingAppointment.treatmentId && patient._id.toString() !== existingAppointment.patientId.toString()) {
+        return res.status(409).json({ success: false, message: 'Cannot reassign an appointment after treatment is recorded' });
+      }
+    }
+
     // ✅ Prevent direct CANCELLED via update — use DELETE /id instead
     if (safeUpdates.status) {
       const validStatuses = ['PENDING', 'CONFIRMED', 'COMPLETED'];
@@ -261,6 +300,9 @@ exports.update = async (req, res) => {
           message: 'Use DELETE /:id to cancel. Valid update statuses: PENDING, CONFIRMED, COMPLETED'
         });
       safeUpdates.status = safeUpdates.status.toUpperCase();
+      if (existingAppointment.treatmentId && safeUpdates.status !== 'COMPLETED') {
+        return res.status(409).json({ success: false, message: 'Cannot change status after treatment is recorded' });
+      }
     }
 
     if (safeUpdates.date) {
@@ -270,25 +312,21 @@ exports.update = async (req, res) => {
       safeUpdates.date = parsedDate;
     }
 
-    if (safeUpdates.time && !/^\d{2}:\d{2}$/.test(safeUpdates.time))
-      return res.status(400).json({ success: false, message: 'Time must be in HH:MM format' });
+    if (safeUpdates.time && !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(safeUpdates.time))
+      return res.status(400).json({ success: false, message: 'Time must be a valid 24-hour time in HH:MM format' });
 
     if (safeUpdates.doctorId && !mongoose.Types.ObjectId.isValid(safeUpdates.doctorId))
       return res.status(400).json({ success: false, message: 'Invalid doctorId' });
 
     // ✅ If date or time is being changed, re-check for conflicts
     if (safeUpdates.date || safeUpdates.time) {
-      const existing = await Appointment.findOne({ _id: id, clinicId: req.user.clinicId });
-      if (!existing)
-        return res.status(404).json({ success: false, message: 'Appointment not found' });
-
-      const checkDate = safeUpdates.date || existing.date;
-      const checkTime = safeUpdates.time || existing.time;
-      const checkDoctor = safeUpdates.doctorId || existing.doctorId;
+      const checkDate = safeUpdates.date || existingAppointment.date;
+      const checkTime = safeUpdates.time || existingAppointment.time;
+      const checkDoctor = safeUpdates.doctorId || existingAppointment.doctorId;
 
       const conflict = await Appointment.findOne({
         _id: { $ne: id },
-        clinicId: req.user.clinicId,
+        clinicId: req.clinicId,
         doctorId: checkDoctor,
         date: checkDate,
         time: checkTime,
@@ -302,7 +340,7 @@ exports.update = async (req, res) => {
     }
 
     const appointment = await Appointment.findOneAndUpdate(
-      { _id: id, clinicId: req.user.clinicId },
+      { _id: id, clinicId: req.clinicId },
       safeUpdates,
       { new: true, runValidators: true }
     )
@@ -346,8 +384,9 @@ exports.remove = async (req, res) => {
     const appointment = await Appointment.findOneAndUpdate(
       {
         _id: id,
-        clinicId: req.user.clinicId,
-        status: { $nin: ['CANCELLED'] }
+        clinicId: req.clinicId,
+        status: { $nin: ['CANCELLED', 'COMPLETED'] },
+        treatmentId: null
       },
       {
         status: 'CANCELLED',
@@ -417,7 +456,7 @@ exports.getCalendar = async (req, res) => {
 
     // ✅ Base query — always clinic-scoped
     const query = {
-      clinicId: req.user.clinicId,
+      clinicId: req.clinicId,
       date: { $gte: from, $lt: to }
     };
 

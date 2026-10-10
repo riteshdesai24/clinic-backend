@@ -126,9 +126,11 @@ exports.create = async (req, res) => {
       });
     }
 
+    const clinicId = req.clinicId;
+
     // ✅ Fetch ADMIN user as clinic — clinicId in token = ADMIN's _id
     const admin = await User.findOne({
-      _id: req.user.clinicId,
+      _id: clinicId,
       role: 'ADMIN'
     }).select('clinicName email');
 
@@ -143,7 +145,7 @@ exports.create = async (req, res) => {
     const hashedPassword = await bcrypt.hash(rawPassword, 12);
 
     const doctor = await User.create({
-      clinicId: req.user.clinicId, // ✅ ADMIN's _id
+      clinicId, // ✅ ADMIN's _id
       staffname: staffname.trim(),
       email: email.trim().toLowerCase(),
       phone: phone?.trim(),
@@ -161,7 +163,7 @@ exports.create = async (req, res) => {
       });
     });
 
-    logger.info(`Doctor created: ${doctor._id} for clinic admin: ${req.user.clinicId}`);
+    logger.info(`Doctor created: ${doctor._id} for clinic admin: ${clinicId}`);
 
     const { password: _pw, resetPasswordToken, resetPasswordExpire, ...safeDoctor } = doctor.toObject();
 
@@ -193,7 +195,7 @@ exports.list = async (req, res) => {
     const pageLimit = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
 
     const query = {
-      clinicId: req.user.clinicId,
+      clinicId: req.clinicId,
       role: 'DOCTOR'
     };
 
@@ -292,7 +294,7 @@ exports.getById = async (req, res) => {
 
     const doctor = await User.findOne({
       _id: id,
-      clinicId: req.user.clinicId,
+      clinicId: req.clinicId,
       role: 'DOCTOR'
     }).select('-password -resetPasswordToken -resetPasswordExpire');
 
@@ -301,10 +303,10 @@ exports.getById = async (req, res) => {
     }
 
     const [total, completed, pending, cancelled] = await Promise.all([
-      Appointment.countDocuments({ clinicId: req.user.clinicId, doctorId: doctor._id }),
-      Appointment.countDocuments({ clinicId: req.user.clinicId, doctorId: doctor._id, status: 'COMPLETED' }),
-      Appointment.countDocuments({ clinicId: req.user.clinicId, doctorId: doctor._id, status: 'PENDING' }),
-      Appointment.countDocuments({ clinicId: req.user.clinicId, doctorId: doctor._id, status: 'CANCELLED' })
+      Appointment.countDocuments({ clinicId: req.clinicId, doctorId: doctor._id }),
+      Appointment.countDocuments({ clinicId: req.clinicId, doctorId: doctor._id, status: 'COMPLETED' }),
+      Appointment.countDocuments({ clinicId: req.clinicId, doctorId: doctor._id, status: 'PENDING' }),
+      Appointment.countDocuments({ clinicId: req.clinicId, doctorId: doctor._id, status: 'CANCELLED' })
     ]);
 
     return res.json({
@@ -359,7 +361,7 @@ exports.update = async (req, res) => {
     }
 
     const doctor = await User.findOneAndUpdate(
-      { _id: id, clinicId: req.user.clinicId, role: 'DOCTOR' },
+      { _id: id, clinicId: req.clinicId, role: 'DOCTOR' },
       safeUpdates,
       { new: true, runValidators: true }
     ).select('-password -resetPasswordToken -resetPasswordExpire');
@@ -393,7 +395,7 @@ exports.remove = async (req, res) => {
     }
 
     const appointmentCount = await Appointment.countDocuments({
-      clinicId: req.user.clinicId,
+      clinicId: req.clinicId,
       doctorId: id
     });
 
@@ -406,7 +408,7 @@ exports.remove = async (req, res) => {
 
     const doctor = await User.findOneAndDelete({
       _id: id,
-      clinicId: req.user.clinicId,
+      clinicId: req.clinicId,
       role: 'DOCTOR'
     });
 
