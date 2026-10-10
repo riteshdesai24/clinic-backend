@@ -1,0 +1,436 @@
+{
+  "info": {
+    "name": "Clinic Backend API",
+    "description": "Postman requests for the clinic backend. Set baseUrl and token in collection variables. The Dashboard Counts routes are declared in the project but are not mounted in index.js, so those requests currently return 404.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "token", "value": "" },
+    { "key": "id", "value": "507f1f77bcf86cd799439011" },
+    { "key": "doctorId", "value": "507f1f77bcf86cd799439012" },
+    { "key": "patientId", "value": "507f1f77bcf86cd799439013" },
+    { "key": "appointmentId", "value": "507f1f77bcf86cd799439014" },
+    { "key": "staffId", "value": "507f1f77bcf86cd799439015" },
+    { "key": "resetToken", "value": "replace-with-reset-token" },
+    { "key": "page", "value": "1" },
+    { "key": "limit", "value": "10" },
+    { "key": "search", "value": "" },
+    { "key": "cursor", "value": "" },
+    { "key": "date", "value": "2026-10-10" },
+    { "key": "from", "value": "2026-10-01" },
+    { "key": "to", "value": "2026-10-31" },
+    { "key": "year", "value": "2026" },
+    { "key": "month", "value": "10" },
+    { "key": "webhookSecret", "value": "replace-with-razorpay-webhook-secret" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "API health",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "noauth" },
+            "url": "{{baseUrl}}/api"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register clinic",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"clinicName\":\"Demo Clinic\",\"phone\":\"+15551234567\",\"email\":\"clinic.demo@example.com\",\"password\":\"ClinicDemo@123\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/api/auth/register"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["if (pm.response.code < 300) {", "  const data = pm.response.json();", "  if (data.token) pm.collectionVariables.set('token', data.token);", "}"] } }]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"clinic.demo@example.com\",\"password\":\"ClinicDemo@123\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["if (pm.response.code < 300) {", "  const data = pm.response.json();", "  if (data.token) pm.collectionVariables.set('token', data.token);", "}"] } }]
+        },
+        {
+          "name": "Change password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"oldPassword\":\"ClinicDemo@123\",\"newPassword\":\"ClinicDemo@456\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/api/auth/change-password"
+          }
+        },
+        {
+          "name": "Forgot password",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"clinic.demo@example.com\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/api/auth/forgot-password"
+          }
+        },
+        {
+          "name": "Reset password",
+          "request": {
+            "method": "PUT",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"newPassword\":\"ClinicDemo@456\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/api/auth/reset-password/{{resetToken}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Staff",
+      "item": [
+        {
+          "name": "Create staff or doctor",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"staffname\":\"Jamie Staff\",\"email\":\"jamie.staff@example.com\",\"phone\":\"+15551234567\",\"role\":\"STAFF\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/staff" }
+        },
+        {
+          "name": "Autocomplete staff",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/staff/autocomplete?q={{search}}&limit={{limit}}" }
+        },
+        {
+          "name": "List staff",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/staff?cursor={{cursor}}&limit={{limit}}&search={{search}}&sort=asc&role=STAFF" }
+        },
+        {
+          "name": "Get staff by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/staff/{{id}}" }
+        },
+        {
+          "name": "Update staff",
+          "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"phone\":\"+15557654321\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/staff/{{id}}" }
+        },
+        {
+          "name": "Delete staff",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/staff/{{id}}" }
+        }
+      ]
+    },
+    {
+      "name": "Doctors",
+      "item": [
+        {
+          "name": "Create doctor",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"staffname\":\"Alex Dentist\",\"email\":\"alex.dentist@example.com\",\"phone\":\"+15551234567\",\"specialization\":\"General Dentistry\",\"available\":true}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/doctors" }
+        },
+        {
+          "name": "Autocomplete doctors",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/doctors/autocomplete?q={{search}}&limit={{limit}}" }
+        },
+        {
+          "name": "List doctors",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/doctors?page={{page}}&limit={{limit}}&search={{search}}" }
+        },
+        {
+          "name": "Get doctor by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/doctors/{{doctorId}}" }
+        },
+        {
+          "name": "Update doctor",
+          "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"specialization\":\"Endodontics\",\"available\":true}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/doctors/{{doctorId}}" }
+        },
+        {
+          "name": "Delete doctor",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/doctors/{{doctorId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Patients",
+      "item": [
+        {
+          "name": "Create patient",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"firstName\":\"Taylor\",\"lastName\":\"Patient\",\"phone\":\"+15551234567\",\"email\":\"taylor.patient@example.com\",\"gender\":\"OTHER\",\"dob\":\"1990-01-15\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/patients" }
+        },
+        {
+          "name": "Autocomplete patients",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/patients/autocomplete?q={{search}}&limit={{limit}}" }
+        },
+        {
+          "name": "List patients",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/patients?page={{page}}&limit={{limit}}&search={{search}}" }
+        },
+        {
+          "name": "Get patient by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/patients/{{patientId}}" }
+        },
+        {
+          "name": "Update patient",
+          "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"phone\":\"+15557654321\",\"city\":\"Springfield\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/patients/{{patientId}}" }
+        },
+        {
+          "name": "Delete patient",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/patients/{{patientId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "item": [
+        {
+          "name": "Create appointment",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"doctorId\":\"{{doctorId}}\",\"patientId\":\"{{patientId}}\",\"date\":\"2026-10-10\",\"time\":\"10:30\",\"notes\":\"Initial consultation\",\"status\":\"PENDING\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/appointments" }
+        },
+        {
+          "name": "Appointment calendar",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/appointments/calendar?year={{year}}&month={{month}}&doctorId={{doctorId}}" }
+        },
+        {
+          "name": "List appointments",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/appointments?page={{page}}&limit={{limit}}&search={{search}}&date={{date}}&doctorId={{doctorId}}&patientId={{patientId}}&status=PENDING" }
+        },
+        {
+          "name": "Get appointment by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/appointments/{{appointmentId}}" }
+        },
+        {
+          "name": "Update appointment",
+          "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"time\":\"11:00\",\"notes\":\"Rescheduled\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/appointments/{{appointmentId}}" }
+        },
+        {
+          "name": "Cancel appointment",
+          "request": { "method": "DELETE", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"reason\":\"Patient requested cancellation\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/appointments/{{appointmentId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Attendance",
+      "item": [
+        {
+          "name": "Clock in",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"note\":\"Starting shift\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/attendance/clock-in" }
+        },
+        {
+          "name": "Clock out",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"note\":\"End of shift\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/attendance/clock-out" }
+        },
+        {
+          "name": "My attendance today",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/attendance/me/today" }
+        },
+        {
+          "name": "My attendance history",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/attendance/me?from={{from}}&to={{to}}&cursor={{cursor}}&limit={{limit}}" }
+        },
+        {
+          "name": "Attendance summary",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/attendance/summary?staffId={{staffId}}&from={{from}}&to={{to}}" }
+        },
+        {
+          "name": "List attendance records",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/attendance?staffId={{staffId}}&date={{date}}&from={{from}}&to={{to}}&status=PRESENT&cursor={{cursor}}&limit={{limit}}" }
+        },
+        {
+          "name": "Mark attendance",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"staffId\":\"{{staffId}}\",\"date\":\"2026-10-10\",\"status\":\"PRESENT\",\"note\":\"Marked by admin\",\"clockIn\":\"2026-10-10T09:00:00.000Z\",\"clockOut\":\"2026-10-10T17:00:00.000Z\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/attendance/mark" }
+        },
+        {
+          "name": "Delete attendance record",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/attendance/{{id}}" }
+        }
+      ]
+    },
+    {
+      "name": "Treatments",
+      "item": [
+        {
+          "name": "Create treatment",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"appointmentId\":\"{{appointmentId}}\",\"diagnosis\":\"Dental caries\",\"medicines\":[{\"name\":\"Example medication\",\"dose\":\"As directed\"}],\"notes\":\"Follow up if symptoms persist\",\"followUpDate\":\"2026-10-24\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/treatments" }
+        },
+        {
+          "name": "Autocomplete treatments",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/treatments/autocomplete?q={{search}}&limit={{limit}}" }
+        },
+        {
+          "name": "List treatments",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/treatments?page={{page}}&limit={{limit}}&search={{search}}&patientId={{patientId}}&doctorId={{doctorId}}&appointmentId={{appointmentId}}" }
+        },
+        {
+          "name": "List treatments by doctor",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/treatments/doctor/{{doctorId}}?page={{page}}&limit={{limit}}" }
+        },
+        {
+          "name": "Get treatment by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/treatments/{{id}}" }
+        },
+        {
+          "name": "Update treatment",
+          "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"diagnosis\":\"Updated diagnosis\",\"notes\":\"Updated notes\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/treatments/{{id}}" }
+        },
+        {
+          "name": "Delete treatment",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/treatments/{{id}}" }
+        }
+      ]
+    },
+    {
+      "name": "Treatment Master",
+      "item": [
+        {
+          "name": "Create treatment master (price optional)",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"Consultation\",\"description\":\"Initial consultation\",\"duration\":30,\"status\":\"ACTIVE\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/treatmentmaster" }
+        },
+        {
+          "name": "List treatment masters",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/treatmentmaster?page={{page}}&limit={{limit}}&search={{search}}&status=ACTIVE" }
+        },
+        {
+          "name": "Get treatment master by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/treatmentmaster/{{id}}" }
+        },
+        {
+          "name": "Update treatment master",
+          "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"description\":\"Consultation and evaluation\",\"price\":100}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/treatmentmaster/{{id}}" }
+        },
+        {
+          "name": "Delete treatment master",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/treatmentmaster/{{id}}" }
+        }
+      ]
+    },
+    {
+      "name": "Conditions",
+      "item": [
+        {
+          "name": "Create condition",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"Dental caries\",\"description\":\"Tooth decay\",\"type\":\"DENTAL\",\"status\":\"ACTIVE\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/conditions" }
+        },
+        {
+          "name": "List conditions",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/conditions?type=DENTAL&status=ACTIVE" }
+        },
+        {
+          "name": "Get condition by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/conditions/{{id}}" }
+        },
+        {
+          "name": "Update condition",
+          "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"description\":\"Updated description\",\"status\":\"INACTIVE\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/conditions/{{id}}" }
+        },
+        {
+          "name": "Delete condition",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/conditions/{{id}}" }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard Counts (not mounted)",
+      "description": "These routes are defined in routes/dashboardcount.routes.js but are not registered by index.js. Mount that router before using these requests.",
+      "item": [
+        { "name": "Today's appointment counts", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboardcounts/appointments/today" } },
+        { "name": "Weekly appointment counts", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboardcounts/appointments/week" } },
+        { "name": "Monthly appointment counts", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboardcounts/appointments/month" } }
+      ]
+    },
+    {
+      "name": "Plans (public in current routes)",
+      "item": [
+        {
+          "name": "Create plan",
+          "request": { "method": "POST", "auth": { "type": "noauth" }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"SILVER\",\"price\":499,\"staffAllowed\":true}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/plans" }
+        },
+        {
+          "name": "List plans",
+          "request": { "method": "GET", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/api/plans" }
+        },
+        {
+          "name": "Get plan by ID",
+          "request": { "method": "GET", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/api/plans/{{id}}" }
+        },
+        {
+          "name": "Update plan",
+          "request": { "method": "PUT", "auth": { "type": "noauth" }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"price\":599,\"staffAllowed\":true}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/plans/{{id}}" }
+        },
+        {
+          "name": "Delete plan",
+          "request": { "method": "DELETE", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/api/plans/{{id}}" }
+        }
+      ]
+    },
+    {
+      "name": "Insurance (public in current routes)",
+      "item": [
+        {
+          "name": "Create insurance",
+          "request": { "method": "POST", "auth": { "type": "noauth" }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"insuranceCompany\":\"Example Health\",\"insurancePolicy\":\"POL-10001\",\"companyName\":\"Example Group\",\"policyNumber\":\"POL-10001\",\"patientId\":\"{{patientId}}\",\"coverageType\":\"Dental\",\"coverageAmount\":5000,\"premiumAmount\":250,\"status\":\"ACTIVE\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/insurances" }
+        },
+        {
+          "name": "Import insurance CSV or XLSX",
+          "request": { "method": "POST", "auth": { "type": "noauth" }, "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "" }] }, "url": "{{baseUrl}}/api/insurances/import" }
+        },
+        {
+          "name": "List insurances",
+          "request": { "method": "GET", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/api/insurances" }
+        },
+        {
+          "name": "Get insurance by ID",
+          "request": { "method": "GET", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/api/insurances/{{id}}" }
+        },
+        {
+          "name": "Update insurance",
+          "request": { "method": "PUT", "auth": { "type": "noauth" }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"status\":\"PENDING\",\"notes\":\"Updated from Postman\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/insurances/{{id}}" }
+        },
+        {
+          "name": "Delete insurance",
+          "request": { "method": "DELETE", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/api/insurances/{{id}}" }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Create Razorpay order",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"amount\":50000}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/payments/create-order" }
+        },
+        {
+          "name": "Verify Razorpay payment",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"razorpay_order_id\":\"order_example\",\"razorpay_payment_id\":\"pay_example\",\"razorpay_signature\":\"replace-with-valid-signature\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/payments/verify" }
+        },
+        {
+          "name": "Payment history",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/payments/history" }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "Razorpay webhook",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"event\":\"payment.captured\",\"payload\":{\"payment\":{\"entity\":{\"order_id\":\"order_example\"}}}}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/api/webhooks/razorpay"
+          },
+          "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["const secret = pm.collectionVariables.get('webhookSecret');", "const signature = CryptoJS.HmacSHA256(pm.request.body.raw, secret).toString();", "pm.request.headers.upsert({ key: 'x-razorpay-signature', value: signature });"] } }]
+        }
+      ]
+    }
+  ]
+}

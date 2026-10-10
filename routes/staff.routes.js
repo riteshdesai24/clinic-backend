@@ -16,6 +16,13 @@ router.post(
 // LIST STAFF
 // ========================
 router.get(
+  '/autocomplete',
+  protect,
+  allowRoles('ADMIN', 'STAFF', 'DOCTOR'),
+  controller.autocomplete
+);
+
+router.get(
   '/',
   protect,
   allowRoles('ADMIN', 'STAFF', 'DOCTOR'),

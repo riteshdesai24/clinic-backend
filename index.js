@@ -64,7 +64,7 @@ app.use('/api/patients',     require('./routes/patient.routes'));
 app.use('/api/appointments',   require('./routes/appointment.routes'));
 app.use('/api/attendance',     require('./routes/attendance.routes'));
 app.use('/api/treatments',     require('./routes/treatment.routes'));
-app.use('/api/treatmenttypes', require('./routes/dentaltreatment.routes'));
+app.use('/api/treatmentmaster', require('./routes/dentaltreatment.routes'));
 app.use('/api/conditions',     require('./routes/condition.routes'));
 app.use('/api/plans',          require('./routes/plan.routes'));
 app.use('/api/insurances',     require('./routes/insurance.routes'));

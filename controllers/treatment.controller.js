@@ -3,6 +3,7 @@ const Appointment = require('../models/Appointment');
 const Patient = require('../models/Patient');
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
+const { parseAutocompleteQuery } = require('../utils/autocomplete');
 
 // ─── Create Treatment ─────────────────────────────────────────────────────────
 
@@ -162,6 +163,50 @@ exports.getAll = async (req, res) => {
 
   } catch (err) {
     logger.error('List Treatments Error', { error: err.message, stack: err.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+exports.autocomplete = async (req, res) => {
+  try {
+    const { term, regex, limit } = parseAutocompleteQuery(req.query);
+    if (!term) return res.json({ success: true, count: 0, data: [] });
+
+    const treatments = await Treatment.find({
+      clinicId: req.clinicId,
+      $or: [
+        { diagnosis: regex },
+        { notes: regex }
+      ]
+    })
+      .select('diagnosis notes patientId doctorId appointmentId')
+      .populate('patientId', 'firstName middleName lastName phone')
+      .populate('doctorId', 'staffname specialization')
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+
+    const data = treatments.map((treatment) => {
+      const patientName = treatment.patientId
+        ? [treatment.patientId.firstName, treatment.patientId.middleName, treatment.patientId.lastName]
+          .filter(Boolean)
+          .join(' ')
+        : '';
+
+      return {
+        id: treatment._id,
+        value: treatment._id,
+        label: treatment.diagnosis,
+        subtitle: patientName || treatment.notes || '',
+        patientId: treatment.patientId?._id,
+        doctorId: treatment.doctorId?._id,
+        appointmentId: treatment.appointmentId
+      };
+    });
+
+    return res.json({ success: true, count: data.length, data });
+  } catch (err) {
+    logger.error('Treatment autocomplete error', { error: err.message, stack: err.stack });
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

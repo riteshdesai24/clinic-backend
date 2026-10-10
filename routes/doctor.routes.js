@@ -12,6 +12,7 @@ router.put('/:id', allowRoles('ADMIN', 'STAFF', 'DOCTOR'), doctorCtrl.update);
 router.delete('/:id', allowRoles('ADMIN'), doctorCtrl.remove);
 
 // ADMIN + STAFF + DOCTOR can view
+router.get('/autocomplete', allowRoles('ADMIN', 'STAFF', 'DOCTOR'), doctorCtrl.autocomplete);
 router.get('/', allowRoles('ADMIN', 'STAFF', 'DOCTOR'), doctorCtrl.list);
 router.get('/:id', allowRoles('ADMIN', 'STAFF', 'DOCTOR'), doctorCtrl.getById);
 

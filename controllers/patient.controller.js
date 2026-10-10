@@ -2,6 +2,7 @@ const Patient = require('../models/Patient');
 const Appointment = require('../models/Appointment');
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
+const { parseAutocompleteQuery } = require('../utils/autocomplete');
 
 // Fields the client is allowed to set. Keeps req.body from silently writing
 // clinicId, isActive, timestamps, etc. via a stray extra key.
@@ -156,6 +157,45 @@ exports.getAll = async (req, res) => {
 
   } catch (err) {
     logger.error('List Patients Error', { error: err.message, stack: err.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+exports.autocomplete = async (req, res) => {
+  try {
+    const { term, regex, limit } = parseAutocompleteQuery(req.query);
+    if (!term) return res.json({ success: true, count: 0, data: [] });
+
+    const patients = await Patient.find({
+      clinicId: req.clinicId,
+      isActive: true,
+      $or: [
+        { firstName: regex },
+        { middleName: regex },
+        { lastName: regex },
+        { phone: regex },
+        { email: regex }
+      ]
+    })
+      .select('title firstName middleName lastName suffix phone email')
+      .sort({ firstName: 1, lastName: 1 })
+      .limit(limit)
+      .lean();
+
+    const data = patients.map((patient) => ({
+      id: patient._id,
+      value: patient._id,
+      label: [patient.title, patient.firstName, patient.middleName, patient.lastName, patient.suffix]
+        .filter(Boolean)
+        .join(' '),
+      subtitle: patient.phone,
+      phone: patient.phone,
+      email: patient.email
+    }));
+
+    return res.json({ success: true, count: data.length, data });
+  } catch (err) {
+    logger.error('Patient autocomplete error', { error: err.message, stack: err.stack });
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

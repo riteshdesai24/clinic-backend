@@ -3,7 +3,7 @@ const controller = require('../controllers/dentaltreatment.controller');
 const { protect, allowRoles } = require('../middlewares/auth');
 
 // ========================
-// CREATE TREATMENT TYPE
+// CREATE TREATMENT MASTER
 // ========================
 router.post(
   '/',
@@ -13,7 +13,7 @@ router.post(
 );
 
 // ========================
-// LIST TREATMENT TYPES
+// LIST TREATMENT MASTERS
 // ========================
 router.get(
   '/',
@@ -23,7 +23,7 @@ router.get(
 );
 
 // ========================
-// GET TREATMENT TYPE BY ID
+// GET TREATMENT MASTER BY ID
 // ========================
 router.get(
   '/:id',
@@ -33,7 +33,7 @@ router.get(
 );
 
 // ========================
-// UPDATE TREATMENT TYPE
+// UPDATE TREATMENT MASTER
 // ========================
 router.put(
   '/:id',
@@ -43,7 +43,7 @@ router.put(
 );
 
 // ========================
-// DELETE TREATMENT TYPE
+// DELETE TREATMENT MASTER
 // ========================
 router.delete(
   '/:id',

@@ -6,6 +6,7 @@ const { protect, allowRoles } = require('../middlewares/auth');
 r.post('/', protect, c.create);
 
 // List
+r.get('/autocomplete', protect, c.autocomplete);
 r.get('/', protect, c.getAll);
 
 // Get treatments for a specific doctor (dentist)

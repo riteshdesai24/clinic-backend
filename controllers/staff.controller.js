@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const sendEmail = require('../utils/sendEmail');
 const sendSMS = require('../utils/sendSMS');
 const logger = require('../utils/logger');
+const { parseAutocompleteQuery } = require('../utils/autocomplete');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -262,6 +263,47 @@ exports.listStaff = async (req, res) => {
 
   } catch (err) {
     logger.error('List Staff Error', { error: err.message, stack: err.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+exports.autocomplete = async (req, res) => {
+  try {
+    const { term, regex, limit } = parseAutocompleteQuery(req.query);
+    if (!term) return res.json({ success: true, count: 0, data: [] });
+
+    const query = {
+      clinicId: req.clinicId,
+      isActive: true,
+      role: { $in: ALLOWED_ROLES },
+      $or: [
+        { staffname: regex },
+        { email: regex },
+        { phone: regex }
+      ]
+    };
+
+    if (ALLOWED_ROLES.includes(req.query.role)) query.role = req.query.role;
+
+    const members = await User.find(query)
+      .select('staffname email phone role specialization')
+      .sort({ staffname: 1 })
+      .limit(limit)
+      .lean();
+
+    const data = members.map((member) => ({
+      id: member._id,
+      value: member._id,
+      label: member.staffname,
+      subtitle: [member.role, member.specialization || member.email].filter(Boolean).join(' · '),
+      role: member.role,
+      email: member.email,
+      phone: member.phone
+    }));
+
+    return res.json({ success: true, count: data.length, data });
+  } catch (err) {
+    logger.error('Staff autocomplete error', { error: err.message, stack: err.stack });
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

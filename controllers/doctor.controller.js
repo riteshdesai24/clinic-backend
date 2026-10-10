@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const sendEmail = require('../utils/sendEmail');
 const logger = require('../utils/logger');
+const { parseAutocompleteQuery } = require('../utils/autocomplete');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -237,6 +238,44 @@ exports.list = async (req, res) => {
 
   } catch (err) {
     logger.error('List Doctors Error', { error: err.message, stack: err.stack });
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+exports.autocomplete = async (req, res) => {
+  try {
+    const { term, regex, limit } = parseAutocompleteQuery(req.query);
+    if (!term) return res.json({ success: true, count: 0, data: [] });
+
+    const doctors = await User.find({
+      clinicId: req.clinicId,
+      role: 'DOCTOR',
+      isActive: true,
+      $or: [
+        { staffname: regex },
+        { email: regex },
+        { specialization: regex }
+      ]
+    })
+      .select('staffname email phone specialization available')
+      .sort({ staffname: 1 })
+      .limit(limit)
+      .lean();
+
+    const data = doctors.map((doctor) => ({
+      id: doctor._id,
+      value: doctor._id,
+      label: doctor.staffname,
+      subtitle: doctor.specialization || doctor.email,
+      email: doctor.email,
+      phone: doctor.phone,
+      specialization: doctor.specialization,
+      available: doctor.available
+    }));
+
+    return res.json({ success: true, count: data.length, data });
+  } catch (err) {
+    logger.error('Doctor autocomplete error', { error: err.message, stack: err.stack });
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

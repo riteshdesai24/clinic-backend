@@ -3,6 +3,7 @@ const c = require('../controllers/patient.controller');
 const { protect, allowRoles } = require('../middlewares/auth');
 
 r.post('/', protect, allowRoles('ADMIN', 'STAFF', 'DOCTOR'), c.create);
+r.get('/autocomplete', protect, allowRoles('ADMIN', 'STAFF', 'DOCTOR'), c.autocomplete);
 r.get('/', protect, allowRoles('ADMIN', 'STAFF', 'DOCTOR'), c.getAll);
 r.get('/:id', protect, allowRoles('ADMIN', 'STAFF', 'DOCTOR'), c.getById);
 r.put('/:id', protect, allowRoles('ADMIN', 'STAFF', 'DOCTOR'), c.update);

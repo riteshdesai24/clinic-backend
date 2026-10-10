@@ -2,22 +2,20 @@ const TreatmentType = require('../models/TreatmentType');
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 
-// ─── Create Treatment Type ───────────────────────────────────────────────────
+// ─── Create Treatment Master ────────────────────────────────────────────────
 
 exports.create = async (req, res) => {
   try {
     const { name, description, duration, price, status } = req.body;
 
-    // ✅ Validate required fields
-    if (!name || price === undefined || price === null) {
+    if (!name) {
       return res.status(400).json({
         success: false,
-        message: 'name and price are required'
+        message: 'name is required'
       });
     }
 
-    // ✅ Validate price
-    if (typeof price !== 'number' || price < 0) {
+    if (price !== undefined && price !== null && (typeof price !== 'number' || price < 0)) {
       return res.status(400).json({
         success: false,
         message: 'price must be a non-negative number'
@@ -37,7 +35,7 @@ exports.create = async (req, res) => {
     // ✅ For ADMIN: use their _id; for STAFF/DOCTOR: use their clinicId (reference to ADMIN)
     const clinicId = req.user.role === 'ADMIN' ? req.user._id : req.user.clinicId;
 
-    const treatmentType = await TreatmentType.create({
+    const treatmentMaster = await TreatmentType.create({
       clinicId,
       name: name.trim(),
       description: description?.trim(),
@@ -46,21 +44,21 @@ exports.create = async (req, res) => {
       status: status || 'ACTIVE'
     });
 
-    logger.info(`Treatment Type created: ${treatmentType._id}`);
+    logger.info(`Treatment Master created: ${treatmentMaster._id}`);
 
     return res.status(201).json({
       success: true,
-      message: 'Treatment Type created successfully',
-      data: treatmentType
+      message: 'Treatment Master created successfully',
+      data: treatmentMaster
     });
 
   } catch (err) {
-    logger.error('Create Treatment Type Error', { error: err.message, stack: err.stack });
+    logger.error('Create Treatment Master Error', { error: err.message, stack: err.stack });
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
-// ─── List Treatment Types ────────────────────────────────────────────────────
+// ─── List Treatment Masters ──────────────────────────────────────────────────
 
 exports.getAll = async (req, res) => {
   try {
@@ -110,12 +108,12 @@ exports.getAll = async (req, res) => {
     });
 
   } catch (err) {
-    logger.error('List Treatment Types Error', { error: err.message, stack: err.stack });
+    logger.error('List Treatment Masters Error', { error: err.message, stack: err.stack });
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
-// ─── Get Treatment Type By ID ────────────────────────────────────────────────
+// ─── Get Treatment Master By ID ──────────────────────────────────────────────
 
 exports.getById = async (req, res) => {
   try {
@@ -125,24 +123,24 @@ exports.getById = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid treatment ID' });
     }
 
-    const treatmentType = await TreatmentType.findOne({
+    const treatmentMaster = await TreatmentType.findOne({
       _id: id,
       clinicId: req.user.clinicId // ✅ clinic-scoped
     });
 
-    if (!treatmentType) {
-      return res.status(404).json({ success: false, message: 'Treatment Type not found' });
+    if (!treatmentMaster) {
+      return res.status(404).json({ success: false, message: 'Treatment Master not found' });
     }
 
-    return res.json({ success: true, data: treatmentType });
+    return res.json({ success: true, data: treatmentMaster });
 
   } catch (err) {
-    logger.error('Get Treatment Type Error', { error: err.message, stack: err.stack });
+    logger.error('Get Treatment Master Error', { error: err.message, stack: err.stack });
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
-// ─── Update Treatment Type ───────────────────────────────────────────────────
+// ─── Update Treatment Master ─────────────────────────────────────────────────
 
 exports.update = async (req, res) => {
   try {
@@ -185,31 +183,31 @@ exports.update = async (req, res) => {
     if (safeUpdates.name) safeUpdates.name = safeUpdates.name.trim();
     if (safeUpdates.description) safeUpdates.description = safeUpdates.description.trim();
 
-    const treatmentType = await TreatmentType.findOneAndUpdate(
+    const treatmentMaster = await TreatmentType.findOneAndUpdate(
       { _id: id, clinicId: req.user.clinicId },
       safeUpdates,
       { new: true, runValidators: true }
     );
 
-    if (!treatmentType) {
-      return res.status(404).json({ success: false, message: 'Treatment Type not found' });
+    if (!treatmentMaster) {
+      return res.status(404).json({ success: false, message: 'Treatment Master not found' });
     }
 
-    logger.info(`Treatment Type updated: ${id} by user: ${req.user._id}`);
+    logger.info(`Treatment Master updated: ${id} by user: ${req.user._id}`);
 
     return res.json({
       success: true,
-      message: 'Treatment Type updated successfully',
-      data: treatmentType
+      message: 'Treatment Master updated successfully',
+      data: treatmentMaster
     });
 
   } catch (err) {
-    logger.error('Update Treatment Type Error', { error: err.message, stack: err.stack });
+    logger.error('Update Treatment Master Error', { error: err.message, stack: err.stack });
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
-// ─── Delete Treatment Type ───────────────────────────────────────────────────
+// ─── Delete Treatment Master ─────────────────────────────────────────────────
 
 exports.remove = async (req, res) => {
   try {
@@ -219,24 +217,24 @@ exports.remove = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid treatment ID' });
     }
 
-    const treatmentType = await TreatmentType.findOneAndDelete({
+    const treatmentMaster = await TreatmentType.findOneAndDelete({
       _id: id,
       clinicId: req.user.clinicId // ✅ clinic-scoped
     });
 
-    if (!treatmentType) {
-      return res.status(404).json({ success: false, message: 'Treatment Type not found' });
+    if (!treatmentMaster) {
+      return res.status(404).json({ success: false, message: 'Treatment Master not found' });
     }
 
-    logger.info(`Treatment Type deleted: ${id} by user: ${req.user._id}`);
+    logger.info(`Treatment Master deleted: ${id} by user: ${req.user._id}`);
 
     return res.json({
       success: true,
-      message: 'Treatment Type deleted successfully'
+      message: 'Treatment Master deleted successfully'
     });
 
   } catch (err) {
-    logger.error('Delete Treatment Type Error', { error: err.message, stack: err.stack });
+    logger.error('Delete Treatment Master Error', { error: err.message, stack: err.stack });
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
