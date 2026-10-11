@@ -64,15 +64,27 @@ module.exports = (RecordModel, recordType) => {
           });
         }
 
-        const attachments = await Attachment.find({
+        const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+        const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
+        const query = {
           clinicId: req.clinicId,
           recordType,
           recordId: record._id
-        }).sort({ createdAt: -1 });
+        };
+        const [attachments, count] = await Promise.all([
+          Attachment.find(query)
+            .sort({ createdAt: -1, _id: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit),
+          Attachment.countDocuments(query)
+        ]);
 
         return res.json({
           success: true,
-          count: attachments.length,
+          page,
+          limit,
+          count,
+          totalPages: Math.ceil(count / limit),
           data: attachments.map((attachment) => ({
             ...attachmentData(attachment),
             downloadUrl: `/api/${recordType === 'appointment' ? 'appointments' : 'treatments'}/${record._id}/attachments/${attachment._id}`

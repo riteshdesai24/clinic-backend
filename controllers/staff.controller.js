@@ -215,7 +215,7 @@ exports.createStaff = async (req, res) => {
 
 exports.listStaff = async (req, res) => {
   try {
-    const { cursor, limit = 10, search, sort = 'asc', role } = req.query;
+    const { cursor, limit = 10, search, sort = 'desc', role } = req.query;
 
     const pageLimit = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
 

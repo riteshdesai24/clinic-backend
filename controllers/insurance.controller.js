@@ -117,11 +117,23 @@ exports.create = async (req, res) => {
  */
 exports.list = async (req, res) => {
   try {
-    const insurances = await Insurance.find().sort({ createdAt: -1 });
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
+    const [insurances, count] = await Promise.all([
+      Insurance.find()
+        .sort({ createdAt: -1, _id: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Insurance.countDocuments()
+    ]);
 
     return res.json({
       success: true,
       message: 'Insurances fetched successfully',
+      page,
+      limit,
+      count,
+      totalPages: Math.ceil(count / limit),
       data: insurances
     });
   } catch (error) {

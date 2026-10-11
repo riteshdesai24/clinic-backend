@@ -38,7 +38,7 @@ exports.create = async (req, res) => {
  */
 exports.list = async (req, res) => {
   try {
-    const plans = await Plan.find().sort({ price: 1 });
+    const plans = await Plan.find().sort({ createdAt: -1, _id: -1 });
 
     return res.json({
       success: true,

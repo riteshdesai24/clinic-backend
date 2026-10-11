@@ -10,6 +10,19 @@ const MedicineSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const RecordedTreatmentSchema = new mongoose.Schema(
+  {
+    treatmentMasterId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'TreatmentType',
+      required: true
+    },
+    treatmentName: { type: String, trim: true, required: true },
+    treatmentPrice: { type: Number, min: 0 }
+  },
+  { _id: false }
+);
+
 const TreatmentSchema = new mongoose.Schema(
   {
     clinicId: {
@@ -53,6 +66,11 @@ const TreatmentSchema = new mongoose.Schema(
     treatmentPrice: {
       type: Number,
       min: 0
+    },
+
+    treatments: {
+      type: [RecordedTreatmentSchema],
+      default: []
     },
 
     diagnosis: {

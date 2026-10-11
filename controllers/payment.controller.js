@@ -74,7 +74,24 @@ exports.verifyPayment = async (req,res)=>{
 
 exports.history = async (req,res)=>{
   try {
-  res.json(await Payment.find({ clinicId:req.clinicId }));
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
+    const query = { clinicId: req.clinicId };
+    const [data, count] = await Promise.all([
+      Payment.find(query)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Payment.countDocuments(query)
+    ]);
+    return res.json({
+      success: true,
+      page,
+      limit,
+      count,
+      totalPages: Math.ceil(count / limit),
+      data
+    });
   } catch (error) {
     console.error(error);
     throw error;

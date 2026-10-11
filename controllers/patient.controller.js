@@ -140,7 +140,7 @@ exports.getAll = async (req, res) => {
 
     const [data, count] = await Promise.all([
       Patient.find(query)
-        .sort({ createdAt: -1 })
+        .sort({ createdAt: -1, _id: -1 })
         .skip((pageNum - 1) * pageLimit)
         .limit(pageLimit),
       Patient.countDocuments(query)

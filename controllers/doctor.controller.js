@@ -189,7 +189,7 @@ exports.list = async (req, res) => {
       specialization,
       search,
       active,
-      sort = 'asc'
+      sort = 'desc'
     } = req.query;
 
     const pageLimit = Math.min(Math.max(parseInt(limit) || 10, 1), 100);

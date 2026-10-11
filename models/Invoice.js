@@ -24,6 +24,8 @@ const InvoiceSchema = new mongoose.Schema({
   doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   items: { type: [InvoiceItemSchema], required: true, validate: value => value.length > 0 },
   subtotal: { type: Number, required: true, min: 0 },
+  discountAmount: { type: Number, default: 0, min: 0 },
+  gstRate: { type: Number, default: 18, min: 0 },
   taxAmount: { type: Number, default: 0, min: 0 },
   totalAmount: { type: Number, required: true, min: 0 },
   amountPaid: { type: Number, default: 0, min: 0 },

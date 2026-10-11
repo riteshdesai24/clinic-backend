@@ -262,3 +262,79 @@
 {"level":"info","message":"MongoDB connected","timestamp":"2026-10-10T16:10:48.938Z"}
 {"level":"info","message":"Server running on port 3000","timestamp":"2026-10-10T16:10:50.335Z"}
 {"level":"info","message":"MongoDB connected","timestamp":"2026-10-10T16:10:50.779Z"}
+{"level":"info","message":"User logged in: 6aca3b90411f4180de331e42 role: ADMIN","timestamp":"2026-10-10T16:24:52.252Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T06:35:47.246Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T06:35:48.014Z"}
+{"level":"info","message":"User logged in: 6aca3b90411f4180de331e42 role: ADMIN","timestamp":"2026-10-11T06:43:23.923Z"}
+{"level":"info","message":"Patient updated: 6aca3c21411f4180de331e4c by user: 6aca3b90411f4180de331e42","timestamp":"2026-10-11T06:47:51.853Z"}
+{"level":"info","message":"Appointment updated: 6aca5acd1c1890a832d3b8b6 by user: 6aca3b90411f4180de331e42","timestamp":"2026-10-11T06:48:32.413Z"}
+{"level":"info","message":"Treatment Master created: 6acb318c5d3a440825c7c6fd","timestamp":"2026-10-11T06:49:48.498Z"}
+{"level":"info","message":"Appointment updated: 6aca5acd1c1890a832d3b8b6 by user: 6aca3b90411f4180de331e42","timestamp":"2026-10-11T06:49:56.316Z"}
+{"level":"info","message":"Treatment created: 6acb31a95d3a440825c7c728 for appointment: 6aca5acd1c1890a832d3b8b6","timestamp":"2026-10-11T06:50:17.905Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T06:56:14.735Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T06:56:15.195Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T06:56:37.984Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T06:56:38.435Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T06:57:04.153Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T06:57:04.639Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T08:12:13.668Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T08:12:14.146Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T08:12:41.110Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T08:12:41.567Z"}
+{"level":"info","message":"Patient created: 6acb461358d0487a52a7ca4a for clinic: 6aca3b90411f4180de331e42","timestamp":"2026-10-11T08:17:23.961Z"}
+{"error":"E11000 duplicate key error collection: clinicdb.appointments index: doctorId_1_appointmentDate_1 dup key: { doctorId: ObjectId('6aca55a746d38ae562d4141d'), appointmentDate: null }","level":"error","message":"Create Appointment Error","stack":"MongoServerError: E11000 duplicate key error collection: clinicdb.appointments index: doctorId_1_appointmentDate_1 dup key: { doctorId: ObjectId('6aca55a746d38ae562d4141d'), appointmentDate: null }\n    at InsertOneOperation.handleOk (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongodb/lib/operations/insert.js:51:19)\n    at tryOperation (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongodb/lib/operations/execute_operation.js:214:34)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async executeOperation (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongodb/lib/operations/execute_operation.js:78:16)\n    at async Collection.insertOne (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongodb/lib/collection.js:154:16)","timestamp":"2026-10-11T08:17:43.576Z"}
+{"error":"E11000 duplicate key error collection: clinicdb.appointments index: doctorId_1_appointmentDate_1 dup key: { doctorId: ObjectId('6aca55a746d38ae562d4141d'), appointmentDate: null }","level":"error","message":"Create Appointment Error","stack":"MongoServerError: E11000 duplicate key error collection: clinicdb.appointments index: doctorId_1_appointmentDate_1 dup key: { doctorId: ObjectId('6aca55a746d38ae562d4141d'), appointmentDate: null }\n    at InsertOneOperation.handleOk (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongodb/lib/operations/insert.js:51:19)\n    at tryOperation (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongodb/lib/operations/execute_operation.js:214:34)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async executeOperation (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongodb/lib/operations/execute_operation.js:78:16)\n    at async Collection.insertOne (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongodb/lib/collection.js:154:16)","timestamp":"2026-10-11T08:17:48.353Z"}
+{"error":"E11000 duplicate key error collection: clinicdb.appointments index: doctorId_1_appointmentDate_1 dup key: { doctorId: ObjectId('6aca55a746d38ae562d4141d'), appointmentDate: null }","level":"error","message":"Create Appointment Error","stack":"MongoServerError: E11000 duplicate key error collection: clinicdb.appointments index: doctorId_1_appointmentDate_1 dup key: { doctorId: ObjectId('6aca55a746d38ae562d4141d'), appointmentDate: null }\n    at InsertOneOperation.handleOk (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongodb/lib/operations/insert.js:51:19)\n    at tryOperation (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongodb/lib/operations/execute_operation.js:214:34)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async executeOperation (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongodb/lib/operations/execute_operation.js:78:16)\n    at async Collection.insertOne (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongodb/lib/collection.js:154:16)","timestamp":"2026-10-11T08:18:00.181Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T08:22:24.457Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T08:22:24.985Z"}
+{"error":"E11000 duplicate key error collection: clinicdb.appointments index: doctorId_1_appointmentDate_1 dup key: { doctorId: ObjectId('6aca55a746d38ae562d4141d'), appointmentDate: null }","level":"error","message":"Create Appointment Error","stack":"MongoServerError: E11000 duplicate key error collection: clinicdb.appointments index: doctorId_1_appointmentDate_1 dup key: { doctorId: ObjectId('6aca55a746d38ae562d4141d'), appointmentDate: null }\n    at InsertOneOperation.handleOk (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongodb/lib/operations/insert.js:51:19)\n    at tryOperation (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongodb/lib/operations/execute_operation.js:214:34)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async executeOperation (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongodb/lib/operations/execute_operation.js:78:16)\n    at async Collection.insertOne (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/mongodb/lib/collection.js:154:16)","timestamp":"2026-10-11T08:23:04.605Z"}
+{"level":"info","message":"Appointment created: 6acb47a0534016fd1bbc0a40 for clinic: 6aca3b90411f4180de331e42","timestamp":"2026-10-11T08:24:00.386Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 8692972118","timestamp":"2026-10-11T08:24:01.233Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 8805076409","timestamp":"2026-10-11T08:24:01.236Z"}
+{"level":"info","message":"Treatment Master created: 6acb47da534016fd1bbc0a5d","timestamp":"2026-10-11T08:24:58.491Z"}
+{"level":"info","message":"Treatment created: 6acb47ec534016fd1bbc0a79 for appointment: 6acb47a0534016fd1bbc0a40","timestamp":"2026-10-11T08:25:16.839Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T13:16:52.652Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T13:16:53.141Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T13:17:17.778Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T13:17:18.228Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T13:20:21.262Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T13:20:21.724Z"}
+{"level":"info","message":"Patient created: 6acb8d84b04832e3469cdc18 for clinic: 6aca3b90411f4180de331e42","timestamp":"2026-10-11T13:22:13.006Z"}
+{"level":"info","message":"Patient updated: 6acb8d84b04832e3469cdc18 by user: 6aca3b90411f4180de331e42","timestamp":"2026-10-11T13:22:26.444Z"}
+{"level":"info","message":"Appointment created: 6acb8db0b04832e3469cdc49 for clinic: 6aca3b90411f4180de331e42","timestamp":"2026-10-11T13:22:56.749Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 9892442905","timestamp":"2026-10-11T13:22:57.322Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 8692972118","timestamp":"2026-10-11T13:22:57.324Z"}
+{"level":"info","message":"Appointment updated: 6acb8db0b04832e3469cdc49 by user: 6aca3b90411f4180de331e42","timestamp":"2026-10-11T13:23:07.685Z"}
+{"level":"info","message":"Treatment created: 6acb8de2b04832e3469cdc81 for appointment: 6acb8db0b04832e3469cdc49","timestamp":"2026-10-11T13:23:46.608Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T13:25:21.441Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T13:25:21.923Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T13:27:18.757Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T13:27:19.187Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T13:27:25.289Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T13:27:25.750Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T13:27:40.714Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T13:27:41.118Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T13:27:49.801Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T13:27:50.255Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T13:28:03.638Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T13:28:04.036Z"}
+{"level":"info","message":"Treatment created: 6acb8eeed9656dd26581f68c for appointment: 6acb8eeed9656dd26581f688","timestamp":"2026-10-11T13:28:14.492Z"}
+{"level":"info","message":"Treatment created: 6acb8ef6d796a2ccf8e7c0ea for appointment: 6acb8ef6d796a2ccf8e7c0e6","timestamp":"2026-10-11T13:28:22.981Z"}
+{"level":"info","message":"Appointment created: 6acb8ffde1d74a7e3120aaea for clinic: 6aca3b90411f4180de331e42","timestamp":"2026-10-11T13:32:45.762Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 8692972118","timestamp":"2026-10-11T13:32:46.192Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 9892442905","timestamp":"2026-10-11T13:32:46.194Z"}
+{"level":"info","message":"Treatment created: 6acb9045e1d74a7e3120ab06 for appointment: 6acb8ffde1d74a7e3120aaea","timestamp":"2026-10-11T13:33:57.225Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T13:35:19.140Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T13:35:19.575Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T14:42:12.823Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T14:42:13.281Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T14:42:25.081Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T14:42:25.529Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T14:42:48.626Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T14:42:49.057Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T14:53:08.304Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T14:53:08.740Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-11T14:53:55.021Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T14:53:55.420Z"}
+{"level":"info","message":"User logged in: 6aca55a746d38ae562d4141d role: DOCTOR","timestamp":"2026-10-11T15:32:46.646Z"}
+{"level":"info","message":"Password changed for user: 6aca55a746d38ae562d4141d","timestamp":"2026-10-11T15:49:12.678Z"}

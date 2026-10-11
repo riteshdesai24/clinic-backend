@@ -5,9 +5,14 @@ const Treatment = require('../models/Treatment');
 const Patient = require('../models/Patient');
 const User = require('../models/User');
 const logger = require('../utils/logger');
+const PDFDocument = require('pdfkit');
+const jwt = require('jsonwebtoken');
+const sendEmail = require('../utils/sendEmail');
+const sendWhatsApp = require('../utils/sendWhatsApp');
 
 const validPeriods = ['week', 'month'];
 const paymentMethods = ['CASH', 'CARD', 'UPI', 'BANK_TRANSFER', 'ONLINE', 'OTHER'];
+const GST_RATE = 18;
 const toCents = value => Math.round((Number(value) + Number.EPSILON) * 100);
 const fromCents = value => value / 100;
 const periodStart = (period, now = new Date()) => {
@@ -19,9 +24,349 @@ const periodStart = (period, now = new Date()) => {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 };
 
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;'
+})[character]);
+
+const formatAmount = value => `INR ${Number(value || 0).toFixed(2)}`;
+const formatInvoiceDate = value => value
+  ? new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+  : 'N/A';
+
+const generateInvoicePdf = invoice => new Promise((resolve, reject) => {
+  const doc = new PDFDocument({ size: 'A4', margin: 48 });
+  const chunks = [];
+  doc.on('data', chunk => chunks.push(chunk));
+  doc.on('error', reject);
+  doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+  const pageWidth = doc.page.width;
+  const pageHeight = doc.page.height;
+  const left = 60;
+  const right = pageWidth - left;
+  const contentWidth = right - left;
+  const patient = invoice.patientId;
+  const doctor = invoice.doctorId;
+  const clinic = invoice.clinicId;
+  const patientName = patient?.name || [patient?.firstName, patient?.lastName].filter(Boolean).join(' ') || 'Patient';
+  const patientAddress = [
+    patient?.address1,
+    patient?.address2,
+    [patient?.city, patient?.state, patient?.pincode].filter(Boolean).join(', '),
+    patient?.phone
+  ].filter(Boolean);
+  const clinicAddress = clinic?.address || {};
+  const clinicAddressLines = [
+    clinicAddress.street,
+    [clinicAddress.city, clinicAddress.state, clinicAddress.zip].filter(Boolean).join(', ')
+  ].filter(Boolean);
+  const clinicName = clinic?.clinicName || clinic?.staffname || 'Clinic';
+  const paymentMethodsUsed = [...new Set((invoice.payments || []).map(payment => payment.method).filter(Boolean))];
+  const paymentMethod = paymentMethodsUsed.length ? paymentMethodsUsed.join(', ') : 'Not paid';
+  const ink = '#202124';
+  const muted = '#686b70';
+  const pale = '#e9eaec';
+  const rule = '#d5d7da';
+
+  const drawTableHeader = y => {
+    doc.save().roundedRect(left, y, contentWidth, 34, 3).fill(pale).restore();
+    doc.fillColor(ink).font('Helvetica').fontSize(10);
+    doc.text('Item', left + 12, y + 11, { width: 225 });
+    doc.text('Quantity', left + 238, y + 11, { width: 66, align: 'right' });
+    doc.text('Price', left + 318, y + 11, { width: 65, align: 'right' });
+    doc.text('Amount', right - 75, y + 11, { width: 63, align: 'right' });
+    return y + 34;
+  };
+
+  const drawFooter = () => {
+    const crest = pageHeight - 220;
+    doc.save();
+    doc.path(`M 0 ${crest} C 130 ${crest - 18}, 240 ${crest + 12}, 330 ${crest + 72} C 425 ${crest + 130}, 505 ${crest + 75}, ${pageWidth} ${crest - 22} L ${pageWidth} ${pageHeight} L 0 ${pageHeight} Z`)
+      .fill('#d3d4d5');
+    doc.path(`M 0 ${pageHeight - 68} C 130 ${pageHeight - 190}, 250 ${pageHeight - 165}, 360 ${pageHeight - 150} C 465 ${pageHeight - 135}, 520 ${pageHeight - 175}, ${pageWidth} ${pageHeight - 245} L ${pageWidth} ${pageHeight} L 0 ${pageHeight} Z`)
+      .fill('#393b3d');
+    doc.restore();
+  };
+
+  doc.fillColor(ink);
+  doc.font('Helvetica-Bold').fontSize(11)
+    .text(clinicName.toUpperCase(), left, 52, { width: 245, height: 32 });
+  doc.font('Helvetica').fontSize(10).fillColor(muted)
+    .text(`NO. ${invoice.invoiceNumber}`, left, 56, { width: contentWidth, align: 'right' });
+
+  doc.fillColor(ink).font('Helvetica-Bold').fontSize(48)
+    .text(clinicName.toUpperCase(), left, 112);
+  doc.font('Helvetica-Bold').fontSize(10).fillColor(ink).text('Date:', left, 184, { continued: true });
+  doc.font('Helvetica').text(`  ${formatInvoiceDate(invoice.issuedAt)}`);
+  if (invoice.dueDate) {
+    doc.font('Helvetica-Bold').text('Due:', left, 202, { continued: true });
+    doc.font('Helvetica').text(`  ${formatInvoiceDate(invoice.dueDate)}`);
+  }
+
+  const detailsTop = invoice.dueDate ? 244 : 226;
+  const columnGap = 28;
+  const columnWidth = (contentWidth - columnGap) / 2;
+  const fromX = left + columnWidth + columnGap;
+  doc.font('Helvetica-Bold').fontSize(10).fillColor(ink)
+    .text('Billed to:', left, detailsTop)
+    .text('From:', fromX, detailsTop);
+  doc.font('Helvetica').fontSize(10).fillColor(ink);
+  let billedY = detailsTop + 18;
+  doc.text(patientName, left, billedY, { width: columnWidth });
+  billedY += 15;
+  for (const line of patientAddress) {
+    doc.text(line, left, billedY, { width: columnWidth });
+    billedY += 15;
+  }
+  if (patient?.email) {
+    doc.text(patient.email, left, billedY, { width: columnWidth });
+    billedY += 15;
+  }
+
+  let fromY = detailsTop + 18;
+  doc.text(clinicName, fromX, fromY, { width: columnWidth });
+  fromY += 15;
+  for (const line of clinicAddressLines) {
+    doc.text(line, fromX, fromY, { width: columnWidth });
+    fromY += 15;
+  }
+  if (clinic?.email) {
+    doc.text(clinic.email, fromX, fromY, { width: columnWidth });
+    fromY += 15;
+  }
+  if (clinic?.phone) {
+    doc.text(clinic.phone, fromX, fromY, { width: columnWidth });
+    fromY += 15;
+  }
+  if (doctor?.staffname) {
+    doc.fillColor(muted).text(`Doctor: ${doctor.staffname}`, fromX, fromY, { width: columnWidth });
+  }
+
+  let y = drawTableHeader(Math.max(billedY, fromY) + 24);
+  const itemColumnWidth = 220;
+  for (const item of invoice.items) {
+    const descriptionHeight = doc.font('Helvetica').fontSize(10)
+      .heightOfString(item.description, { width: itemColumnWidth });
+    const rowHeight = Math.max(27, descriptionHeight + 12);
+    if (y + rowHeight > 590) {
+      doc.addPage();
+      doc.fillColor(ink).font('Helvetica-Bold').fontSize(14).text('INVOICE', left, 52);
+      doc.font('Helvetica').fontSize(10).fillColor(muted)
+        .text(invoice.invoiceNumber, left, 72);
+      y = drawTableHeader(105);
+    }
+
+    doc.fillColor(ink).font('Helvetica').fontSize(10)
+      .text(item.description, left + 12, y + 8, { width: itemColumnWidth, height: rowHeight - 8 });
+    doc.text(String(item.quantity), left + 238, y + 8, { width: 66, align: 'right' });
+    doc.text(formatAmount(item.unitPrice), left + 310, y + 8, { width: 73, align: 'right' });
+    doc.text(formatAmount(item.amount), right - 82, y + 8, { width: 70, align: 'right' });
+    y += rowHeight;
+    doc.moveTo(left, y).lineTo(right, y).lineWidth(0.6).strokeColor(rule).stroke();
+  }
+
+  if (y + 190 > pageHeight - 230) {
+    doc.addPage();
+    doc.fillColor(ink).font('Helvetica-Bold').fontSize(14).text('INVOICE SUMMARY', left, 54);
+    doc.font('Helvetica').fontSize(10).fillColor(muted).text(invoice.invoiceNumber, left, 74);
+    y = 112;
+  } else {
+    y += 12;
+  }
+
+  const labelX = right - 240;
+  const valueX = right - 125;
+  const summaryLine = (label, value, options = {}) => {
+    doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica')
+      .fontSize(options.total ? 12 : 10)
+      .fillColor(ink)
+      .text(label, labelX, y, { width: 115 });
+    doc.text(value, valueX, y, { width: 125, align: 'right' });
+    y += options.total ? 28 : 21;
+  };
+
+  summaryLine('Subtotal', formatAmount(invoice.subtotal));
+  summaryLine(`GST (${invoice.gstRate ?? GST_RATE}%)`, formatAmount(invoice.taxAmount));
+  doc.moveTo(labelX, y - 3).lineTo(right, y - 3).lineWidth(0.8).strokeColor(rule).stroke();
+  const totalBeforeDiscount = toCents(invoice.subtotal) + toCents(invoice.taxAmount);
+  summaryLine('Total before discount', formatAmount(fromCents(totalBeforeDiscount)), { bold: true, total: true });
+  if (invoice.discountAmount) summaryLine('Discount', `-${formatAmount(invoice.discountAmount)}`);
+  summaryLine('Amount due', formatAmount(invoice.totalAmount), { bold: true, total: true });
+  summaryLine('Paid', formatAmount(invoice.amountPaid));
+  summaryLine('Balance due', formatAmount(Math.max(invoice.totalAmount - invoice.amountPaid, 0)), { bold: true });
+
+  y += 20;
+  doc.font('Helvetica-Bold').fontSize(10).fillColor(ink).text('Payment method:', left, y, { continued: true });
+  doc.font('Helvetica').text(`  ${paymentMethod}`);
+  y += 20;
+  doc.font('Helvetica-Bold').text('Note:', left, y, { continued: true });
+  doc.font('Helvetica').text(`  ${invoice.notes || 'Thank you for choosing us!'}`, {
+    width: contentWidth - 32
+  });
+
+  drawFooter();
+  doc.end();
+});
+
+const getInvoiceForUser = (id, req) => {
+  const query = { _id: id, clinicId: req.clinicId };
+  if (req.user.role === 'DOCTOR') query.doctorId = req.user._id;
+  return Invoice.findOne(query)
+    .populate('patientId', 'title firstName middleName lastName suffix email phone whatsappNumber address1 address2 city state pincode')
+    .populate('doctorId', 'staffname email')
+    .populate('clinicId', 'clinicName staffname email phone address');
+};
+
+const sendInvoicePdf = async (res, invoice, disposition = 'inline') => {
+  const pdf = await generateInvoicePdf(invoice);
+  const safeInvoiceNumber = String(invoice.invoiceNumber).replace(/[^a-zA-Z0-9_-]/g, '_');
+  res.set({
+    'Content-Type': 'application/pdf',
+    'Content-Length': pdf.length,
+    'Content-Disposition': `${disposition}; filename="${safeInvoiceNumber}.pdf"`,
+    'Cache-Control': 'private, no-store'
+  });
+  return res.send(pdf);
+};
+
+exports.viewPdf = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ success: false, message: 'Invalid invoice ID' });
+    const invoice = await getInvoiceForUser(id, req);
+    if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
+    return await sendInvoicePdf(res, invoice);
+  } catch (error) {
+    logger.error('View Invoice PDF Error', { error: error.message, stack: error.stack });
+    return res.status(500).json({ success: false, message: 'Could not generate invoice PDF' });
+  }
+};
+
+exports.publicPdf = async (req, res) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ success: false, message: 'Invalid invoice ID' });
+
+  let payload;
+  try {
+    payload = jwt.verify(req.query.token, process.env.JWT_SECRET);
+  } catch (error) {
+    return res.status(401).json({ success: false, message: 'Invoice PDF link is invalid or expired' });
+  }
+  if (payload.purpose !== 'invoice-whatsapp' || payload.invoiceId !== id) {
+    return res.status(401).json({ success: false, message: 'Invoice PDF link is invalid or expired' });
+  }
+
+  try {
+    const invoice = await Invoice.findById(id)
+      .populate('patientId', 'title firstName middleName lastName suffix email phone whatsappNumber address1 address2 city state pincode')
+      .populate('doctorId', 'staffname email')
+      .populate('clinicId', 'clinicName staffname email phone address');
+    if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
+    return await sendInvoicePdf(res, invoice, 'attachment');
+  } catch (error) {
+    logger.error('Public Invoice PDF Error', { error: error.message, stack: error.stack });
+    return res.status(500).json({ success: false, message: 'Could not generate invoice PDF' });
+  }
+};
+
+exports.send = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ success: false, message: 'Invalid invoice ID' });
+    const invoice = await getInvoiceForUser(id, req);
+    if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
+    if (invoice.status === 'VOID') return res.status(409).json({ success: false, message: 'Cannot send a void invoice' });
+    if (!invoice.patientId || !invoice.doctorId) {
+      return res.status(409).json({ success: false, message: 'Invoice patient or doctor details are unavailable' });
+    }
+
+    const pdf = await generateInvoicePdf(invoice);
+    const results = {};
+    const attachment = {
+      filename: `${invoice.invoiceNumber}.pdf`,
+      content: pdf,
+      contentType: 'application/pdf'
+    };
+    const patientName = invoice.patientId.name || 'Patient';
+    const clinicName = invoice.clinicId?.clinicName || 'Clinic';
+    const emailHtml = `
+      <p>Hello ${escapeHtml(patientName)},</p>
+      <p>Please find attached invoice <strong>${escapeHtml(invoice.invoiceNumber)}</strong> from ${escapeHtml(clinicName)}.</p>
+      <p>Total: ${escapeHtml(formatAmount(invoice.totalAmount))}<br>
+      Balance due: ${escapeHtml(formatAmount(Math.max(invoice.totalAmount - invoice.amountPaid, 0)))}</p>
+    `;
+    const emailTasks = [
+      ['patientEmail', invoice.patientId.email, `Invoice ${invoice.invoiceNumber}`, emailHtml],
+      ['doctorEmail', invoice.doctorId.email, `Invoice ${invoice.invoiceNumber} — ${patientName}`, `
+        <p>Hello Dr. ${escapeHtml(invoice.doctorId.staffname || '')},</p>
+        <p>Attached is invoice <strong>${escapeHtml(invoice.invoiceNumber)}</strong> for ${escapeHtml(patientName)}.</p>
+        <p>Total: ${escapeHtml(formatAmount(invoice.totalAmount))}</p>
+      `]
+    ];
+    await Promise.all(emailTasks.map(async ([channel, recipient, subject, html]) => {
+      if (!recipient) {
+        results[channel] = { success: false, error: 'Recipient email address is not available' };
+        return;
+      }
+      try {
+        await sendEmail({ to: recipient, subject, html, attachments: [attachment] });
+        results[channel] = { success: true, recipient };
+      } catch (error) {
+        logger.error(`Invoice email delivery failed (${channel})`, { invoiceId: id, error: error.message });
+        results[channel] = { success: false, error: 'Email delivery failed' };
+      }
+    }));
+
+    const whatsappNumber = invoice.patientId.whatsappNumber || invoice.patientId.phone;
+    try {
+      if (!process.env.API_BASE_URL) throw new Error('API_BASE_URL is required to deliver invoice PDFs through WhatsApp');
+      const baseUrl = new URL(process.env.API_BASE_URL);
+      if (!['http:', 'https:'].includes(baseUrl.protocol) || baseUrl.username || baseUrl.password) {
+        throw new Error('API_BASE_URL must be a valid HTTP(S) URL without credentials');
+      }
+      const token = jwt.sign(
+        { purpose: 'invoice-whatsapp', invoiceId: invoice.id },
+        process.env.JWT_SECRET,
+        { expiresIn: '30m' }
+      );
+      const pdfUrl = new URL(`/api/invoices/public/${invoice.id}/pdf`, baseUrl);
+      pdfUrl.searchParams.set('token', token);
+      await sendWhatsApp({
+        to: whatsappNumber,
+        body: `Invoice ${invoice.invoiceNumber} from ${clinicName}. Total: ${formatAmount(invoice.totalAmount)}. The PDF is attached.`,
+        mediaUrl: pdfUrl.toString()
+      });
+      results.patientWhatsApp = { success: true, recipient: whatsappNumber };
+    } catch (error) {
+      logger.error('Invoice WhatsApp delivery failed', { invoiceId: id, error: error.message });
+      results.patientWhatsApp = { success: false, error: error.message };
+    }
+
+    const failedCount = Object.values(results).filter(result => !result.success).length;
+    const status = failedCount === 0 ? 200 : failedCount === Object.keys(results).length ? 502 : 207;
+    return res.status(status).json({
+      success: failedCount === 0,
+      message: failedCount === 0 ? 'Invoice sent successfully' : 'Invoice delivery was incomplete',
+      data: { invoiceId: invoice.id, channels: results }
+    });
+  } catch (error) {
+    logger.error('Send Invoice Error', { error: error.message, stack: error.stack });
+    return res.status(500).json({ success: false, message: 'Could not send invoice' });
+  }
+};
+
 exports.create = async (req, res) => {
   try {
-    const { appointmentId, items = [], treatmentPrice, taxAmount = 0, dueDate, notes } = req.body;
+    const { appointmentId, items = [], treatmentPrice, dueDate, notes } = req.body;
+    const discountValue = req.body.discountAmount ?? req.body.discount ?? 0;
+    if (req.body.discountAmount !== undefined && req.body.discount !== undefined
+      && Number(req.body.discountAmount) !== Number(req.body.discount)) {
+      return res.status(400).json({ success: false, message: 'Provide either discountAmount or discount, not conflicting values' });
+    }
     if (!mongoose.Types.ObjectId.isValid(appointmentId) || !Array.isArray(items) || items.length > 50) {
       return res.status(400).json({ success: false, message: 'A valid appointmentId and at most 50 additional items are required' });
     }
@@ -46,7 +391,9 @@ exports.create = async (req, res) => {
       _id: appointment.treatmentId,
       appointmentId: appointment._id,
       clinicId: req.clinicId
-    }).populate('treatmentMasterId', 'name price');
+    })
+      .populate('treatmentMasterId', 'name price')
+      .populate('treatments.treatmentMasterId', 'name price');
     if (!treatment) return res.status(409).json({ success: false, message: 'The appointment treatment record is missing or invalid' });
 
     const existingInvoice = await Invoice.findOne({ clinicId: req.clinicId, appointmentId: appointment._id });
@@ -56,21 +403,56 @@ exports.create = async (req, res) => {
     const doctor = await User.findOne({ _id: appointmentDoctorId, clinicId: req.clinicId, role: 'DOCTOR' });
     if (!patient || !doctor) return res.status(400).json({ success: false, message: 'Appointment patient or doctor is invalid' });
 
-    const catalogPrice = treatment.treatmentPrice ?? treatment.treatmentMasterId?.price;
-    const billedTreatmentPrice = treatmentPrice === undefined ? catalogPrice : Number(treatmentPrice);
-    if (billedTreatmentPrice === undefined || !Number.isFinite(billedTreatmentPrice) || billedTreatmentPrice < 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'The treatment has no catalog price; provide a non-negative treatmentPrice to invoice it'
+    const selectedTreatments = Array.isArray(treatment.treatments) && treatment.treatments.length
+      ? treatment.treatments
+      : treatment.treatmentMasterId
+        ? [{
+          treatmentName: treatment.treatmentName || treatment.treatmentMasterId.name,
+          treatmentPrice: treatment.treatmentPrice ?? treatment.treatmentMasterId.price
+        }]
+        : [];
+    if (treatmentPrice !== undefined && selectedTreatments.length > 1) {
+      return res.status(400).json({ success: false, message: 'treatmentPrice can only override the price when one treatment is selected' });
+    }
+
+    const normalizedItems = [];
+    for (const [index, selectedTreatment] of selectedTreatments.entries()) {
+      const selectedPrice = index === 0 && treatmentPrice !== undefined
+        ? Number(treatmentPrice)
+        : Number(selectedTreatment.treatmentPrice ?? selectedTreatment.treatmentMasterId?.price);
+      if (!Number.isFinite(selectedPrice) || selectedPrice < 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Treatment "${selectedTreatment.treatmentName || selectedTreatment.treatmentMasterId?.name || index + 1}" has no valid price`
+        });
+      }
+      const priceCents = toCents(selectedPrice);
+      normalizedItems.push({
+        description: selectedTreatment.treatmentName || selectedTreatment.treatmentMasterId?.name || `Treatment ${index + 1}`,
+        quantity: 1,
+        unitPrice: fromCents(priceCents),
+        amount: fromCents(priceCents)
       });
     }
 
-    const normalizedItems = [{
-      description: treatment.treatmentName || treatment.treatmentMasterId?.name || treatment.diagnosis,
-      quantity: 1,
-      unitPrice: fromCents(toCents(billedTreatmentPrice)),
-      amount: fromCents(toCents(billedTreatmentPrice))
-    }];
+    if (!selectedTreatments.length) {
+      const billedTreatmentPrice = treatmentPrice === undefined
+        ? treatment.treatmentPrice
+        : Number(treatmentPrice);
+      if (billedTreatmentPrice === undefined || !Number.isFinite(billedTreatmentPrice) || billedTreatmentPrice < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'The treatment has no catalog price; provide a non-negative treatmentPrice to invoice it'
+        });
+      }
+      const priceCents = toCents(billedTreatmentPrice);
+      normalizedItems.push({
+        description: treatment.treatmentName || treatment.diagnosis,
+        quantity: 1,
+        unitPrice: fromCents(priceCents),
+        amount: fromCents(priceCents)
+      });
+    }
 
     for (const item of items) {
       if (!item || typeof item !== 'object' || Array.isArray(item)) {
@@ -92,9 +474,13 @@ exports.create = async (req, res) => {
     }
 
     const subtotalCents = normalizedItems.reduce((sum, item) => sum + toCents(item.amount), 0);
-    const tax = Number(taxAmount);
-    if (!Number.isFinite(tax) || tax < 0 || tax > 10000000) return res.status(400).json({ success: false, message: 'taxAmount must be a non-negative INR amount' });
-    const taxCents = toCents(tax);
+    const discount = Number(discountValue);
+    if (!Number.isFinite(discount) || discount < 0 || discount > fromCents(subtotalCents)) {
+      return res.status(400).json({ success: false, message: 'discountAmount must be between zero and the invoice subtotal' });
+    }
+    const discountCents = toCents(discount);
+    const taxableAmountCents = subtotalCents - discountCents;
+    const taxCents = Math.round(taxableAmountCents * GST_RATE / 100);
     let parsedDueDate;
     if (dueDate !== undefined) {
       parsedDueDate = new Date(dueDate);
@@ -110,13 +496,15 @@ exports.create = async (req, res) => {
       invoiceNumber,
       appointmentId: appointment._id,
       treatmentId: treatment._id,
-      treatmentName: treatment.treatmentName || treatment.treatmentMasterId?.name || treatment.diagnosis,
+      treatmentName: normalizedItems.map(item => item.description).join(', '),
       patientId: patient._id,
       doctorId: doctor._id,
       items: normalizedItems,
       subtotal: fromCents(subtotalCents),
+      discountAmount: fromCents(discountCents),
+      gstRate: GST_RATE,
       taxAmount: fromCents(taxCents),
-      totalAmount: fromCents(subtotalCents + taxCents),
+      totalAmount: fromCents(taxableAmountCents + taxCents),
       dueDate: parsedDueDate,
       notes
     });
@@ -133,6 +521,13 @@ exports.list = async (req, res) => {
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
     const query = { clinicId: req.clinicId };
+    const period = req.query.period === undefined ? undefined : String(req.query.period).toLowerCase();
+    if (period && !validPeriods.includes(period)) {
+      return res.status(400).json({ success: false, message: 'period must be week or month' });
+    }
+    const to = period ? new Date() : undefined;
+    const from = period ? periodStart(period, to) : undefined;
+    if (period) query.issuedAt = { $gte: from, $lte: to };
     if (req.user.role === 'DOCTOR') query.doctorId = req.user._id;
     else if (req.query.doctorId) {
       if (!mongoose.Types.ObjectId.isValid(req.query.doctorId)) return res.status(400).json({ success: false, message: 'Invalid doctorId' });
@@ -146,10 +541,18 @@ exports.list = async (req, res) => {
     }
     if (req.query.status) query.status = String(req.query.status).toUpperCase();
     const [data, count] = await Promise.all([
-      Invoice.find(query).populate('patientId', 'name phone').populate('doctorId', 'staffname').populate('treatmentId', 'diagnosis treatmentName treatmentMasterId').sort({ issuedAt: -1 }).skip((page - 1) * limit).limit(limit),
+      Invoice.find(query).populate('patientId', 'name phone').populate('doctorId', 'staffname').populate('treatmentId', 'diagnosis treatmentName treatmentMasterId').sort({ issuedAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit),
       Invoice.countDocuments(query)
     ]);
-    return res.json({ success: true, page, limit, count, totalPages: Math.ceil(count / limit), data });
+    return res.json({
+      success: true,
+      page,
+      limit,
+      count,
+      totalPages: Math.ceil(count / limit),
+      ...(period && { period: period.toUpperCase(), from, to }),
+      data
+    });
   } catch (error) {
     logger.error('List Invoices Error', { error: error.message, stack: error.stack });
     return res.status(500).json({ success: false, message: 'Could not load invoices' });

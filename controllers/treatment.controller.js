@@ -8,11 +8,45 @@ const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 const { parseAutocompleteQuery } = require('../utils/autocomplete');
 
+const resolveTreatmentMasters = async (ids, clinicId) => {
+  if (!Array.isArray(ids) || ids.length > 50) {
+    return { error: 'treatmentMasterIds must be an array of at most 50 IDs' };
+  }
+  if (ids.some(id => !mongoose.Types.ObjectId.isValid(id))) {
+    return { error: 'Each treatmentMasterIds entry must be a valid ID' };
+  }
+  const normalizedIds = ids.map(String);
+  if (new Set(normalizedIds).size !== normalizedIds.length) {
+    return { error: 'Duplicate treatmentMasterIds are not allowed' };
+  }
+  if (!ids.length) return { treatments: [] };
+
+  const masters = await TreatmentType.find({
+    _id: { $in: ids },
+    clinicId,
+    status: 'ACTIVE'
+  });
+  const mastersById = new Map(masters.map(master => [master._id.toString(), master]));
+  if (mastersById.size !== normalizedIds.length) {
+    return { error: 'One or more active treatment masters were not found in this clinic', notFound: true };
+  }
+  return {
+    treatments: normalizedIds.map(id => {
+      const master = mastersById.get(id);
+      return {
+        treatmentMasterId: master._id,
+        treatmentName: master.name,
+        treatmentPrice: master.price
+      };
+    })
+  };
+};
+
 // ─── Create Treatment ─────────────────────────────────────────────────────────
 
 exports.create = async (req, res) => {
   try {
-    const { appointmentId, treatmentMasterId, diagnosis, medicines, notes, followUpDate } = req.body;
+    const { appointmentId, treatmentMasterId, treatmentMasterIds, diagnosis, medicines, notes, followUpDate } = req.body;
 
     // ✅ Validate required fields
     if (!appointmentId || typeof diagnosis !== 'string' || !diagnosis.trim()) {
@@ -52,20 +86,20 @@ exports.create = async (req, res) => {
       });
     }
 
-    let treatmentMaster;
-    if (treatmentMasterId) {
-      if (!mongoose.Types.ObjectId.isValid(treatmentMasterId)) {
-        return res.status(400).json({ success: false, message: 'Invalid treatmentMasterId' });
-      }
-      treatmentMaster = await TreatmentType.findOne({
-        _id: treatmentMasterId,
-        clinicId: req.clinicId,
-        status: 'ACTIVE'
-      });
-      if (!treatmentMaster) {
-        return res.status(404).json({ success: false, message: 'Active treatment master not found' });
-      }
+    if (treatmentMasterId !== undefined && treatmentMasterIds !== undefined) {
+      return res.status(400).json({ success: false, message: 'Provide treatmentMasterId or treatmentMasterIds, not both' });
     }
+    const masterIds = treatmentMasterIds !== undefined
+      ? treatmentMasterIds
+      : treatmentMasterId !== undefined && treatmentMasterId !== null
+        ? [treatmentMasterId]
+        : [];
+    const resolvedMasters = await resolveTreatmentMasters(masterIds, req.clinicId);
+    if (resolvedMasters.error) {
+      return res.status(resolvedMasters.notFound ? 404 : 400).json({ success: false, message: resolvedMasters.error });
+    }
+    const recordedTreatments = resolvedMasters.treatments;
+    const primaryTreatment = recordedTreatments[0];
 
     // ✅ Validate medicines array if provided
     if (medicines && !Array.isArray(medicines)) {
@@ -88,9 +122,12 @@ exports.create = async (req, res) => {
       appointmentId,
       patientId: appointment.patientId,      // ✅ pulled from appointment
       doctorId: appointment.doctorId,        // ✅ pulled from appointment
-      treatmentMasterId: treatmentMaster?._id,
-      treatmentName: treatmentMaster?.name,
-      treatmentPrice: treatmentMaster?.price,
+      treatmentMasterId: primaryTreatment?.treatmentMasterId,
+      treatmentName: recordedTreatments.map(item => item.treatmentName).join(', ') || undefined,
+      treatmentPrice: recordedTreatments.length && recordedTreatments.every(item => Number.isFinite(item.treatmentPrice))
+        ? recordedTreatments.reduce((sum, item) => sum + item.treatmentPrice, 0)
+        : undefined,
+      treatments: recordedTreatments,
       diagnosis: diagnosis.trim(),
       medicines: medicines || [],
       notes: notes?.trim(),
@@ -125,6 +162,7 @@ exports.create = async (req, res) => {
     // ✅ Populate for response
     const populated = await Treatment.findById(treatment._id)
       .populate('treatmentMasterId', 'name description duration price')
+      .populate('treatments.treatmentMasterId', 'name description duration price')
       .populate('patientId', 'name phone age gender')
       .populate('doctorId', 'staffname specialization')
       .populate('appointmentId', 'date status notes');
@@ -192,10 +230,12 @@ exports.getAll = async (req, res) => {
 
     const [data, count] = await Promise.all([
       Treatment.find(query)
+        .populate('treatmentMasterId', 'name description duration price')
+        .populate('treatments.treatmentMasterId', 'name description duration price')
         .populate('patientId', 'name phone age gender')
         .populate('doctorId', 'staffname specialization')
         .populate('appointmentId', 'date status notes')
-        .sort({ createdAt: -1 })
+        .sort({ createdAt: -1, _id: -1 })
         .skip((pageNum - 1) * pageLimit)
         .limit(pageLimit),
       Treatment.countDocuments(query)
@@ -231,7 +271,7 @@ exports.autocomplete = async (req, res) => {
       .select('diagnosis notes patientId doctorId appointmentId')
       .populate('patientId', 'firstName middleName lastName phone')
       .populate('doctorId', 'staffname specialization')
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: -1, _id: -1 })
       .limit(limit)
       .lean();
 
@@ -313,10 +353,12 @@ exports.getByDoctor = async (req, res) => {
 
     const [data, count] = await Promise.all([
       Treatment.find(query)
+        .populate('treatmentMasterId', 'name description duration price')
+        .populate('treatments.treatmentMasterId', 'name description duration price')
         .populate('patientId', 'name phone age gender')
         .populate('doctorId', 'staffname specialization')
         .populate('appointmentId', 'date status notes')
-        .sort({ createdAt: -1 })
+        .sort({ createdAt: -1, _id: -1 })
         .skip((pageNum - 1) * pageLimit)
         .limit(pageLimit),
       Treatment.countDocuments(query)
@@ -351,6 +393,8 @@ exports.getById = async (req, res) => {
       _id: id,
       clinicId: req.clinicId // ✅ clinic-scoped
     })
+      .populate('treatmentMasterId', 'name description duration price')
+      .populate('treatments.treatmentMasterId', 'name description duration price')
       .populate('patientId', 'name phone age gender email address medicalHistory')
       .populate('doctorId', 'staffname specialization phone email')
       .populate('appointmentId', 'date status notes');
@@ -384,10 +428,31 @@ exports.update = async (req, res) => {
       patientId,
       doctorId,
       treatmentMasterId,
+      treatmentMasterIds,
+      treatments,
       treatmentName,
       treatmentPrice,
       ...safeUpdates
     } = req.body;
+
+    if (treatments !== undefined) {
+      return res.status(400).json({ success: false, message: 'Use treatmentMasterIds to update selected treatments' });
+    }
+    if (treatmentMasterId !== undefined) {
+      return res.status(400).json({ success: false, message: 'Use treatmentMasterIds to update selected treatments' });
+    }
+    if (treatmentMasterIds !== undefined) {
+      const resolvedMasters = await resolveTreatmentMasters(treatmentMasterIds, req.clinicId);
+      if (resolvedMasters.error) {
+        return res.status(resolvedMasters.notFound ? 404 : 400).json({ success: false, message: resolvedMasters.error });
+      }
+      safeUpdates.treatments = resolvedMasters.treatments;
+      safeUpdates.treatmentMasterId = resolvedMasters.treatments[0]?.treatmentMasterId;
+      safeUpdates.treatmentName = resolvedMasters.treatments.map(item => item.treatmentName).join(', ') || undefined;
+      safeUpdates.treatmentPrice = resolvedMasters.treatments.length && resolvedMasters.treatments.every(item => Number.isFinite(item.treatmentPrice))
+        ? resolvedMasters.treatments.reduce((sum, item) => sum + item.treatmentPrice, 0)
+        : undefined;
+    }
 
     if (safeUpdates.medicines && !Array.isArray(safeUpdates.medicines)) {
       return res.status(400).json({ success: false, message: 'medicines must be an array' });
@@ -409,6 +474,8 @@ exports.update = async (req, res) => {
       safeUpdates,
       { new: true, runValidators: true }
     )
+      .populate('treatmentMasterId', 'name description duration price')
+      .populate('treatments.treatmentMasterId', 'name description duration price')
       .populate('patientId', 'name phone age gender')
       .populate('doctorId', 'staffname specialization')
       .populate('appointmentId', 'date status notes');

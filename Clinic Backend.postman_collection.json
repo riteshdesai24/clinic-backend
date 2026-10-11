@@ -18,6 +18,7 @@
     { "key": "patientId", "value": "507f1f77bcf86cd799439013" },
     { "key": "appointmentId", "value": "507f1f77bcf86cd799439014" },
     { "key": "treatmentMasterId", "value": "507f1f77bcf86cd799439017" },
+    { "key": "treatmentMasterId2", "value": "507f1f77bcf86cd799439018" },
     { "key": "staffId", "value": "507f1f77bcf86cd799439015" },
     { "key": "attachmentId", "value": "507f1f77bcf86cd799439016" },
     { "key": "resetToken", "value": "replace-with-reset-token" },
@@ -219,7 +220,7 @@
         },
         {
           "name": "List appointment files",
-          "request": { "method": "GET", "url": "{{baseUrl}}/api/appointments/{{appointmentId}}/attachments" }
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/appointments/{{appointmentId}}/attachments?page={{page}}&limit={{limit}}" }
         },
         {
           "name": "Download appointment file",
@@ -235,7 +236,7 @@
         },
         {
           "name": "List appointments",
-          "request": { "method": "GET", "url": "{{baseUrl}}/api/appointments?page={{page}}&limit={{limit}}&search={{search}}&date={{date}}&doctorId={{doctorId}}&patientId={{patientId}}&status=PENDING" }
+          "request": { "method": "GET", "description": "Optionally filter appointments by their scheduled date during the current UTC week or month with period=week or period=month. Do not combine period with date.", "url": "{{baseUrl}}/api/appointments?page={{page}}&limit={{limit}}&search={{search}}&doctorId={{doctorId}}&patientId={{patientId}}&status=PENDING&period=month" }
         },
         {
           "name": "Get appointment by ID",
@@ -256,11 +257,23 @@
       "item": [
         {
           "name": "Create invoice for appointment",
-          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"appointmentId\":\"{{appointmentId}}\",\"taxAmount\":0,\"items\":[]}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/invoices" }
+          "request": { "method": "POST", "description": "GST is calculated at 18% after the discount. discountAmount is an optional INR amount and cannot exceed the subtotal.", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"appointmentId\":\"{{appointmentId}}\",\"discountAmount\":0,\"items\":[]}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/invoices" }
         },
         {
           "name": "List invoices",
-          "request": { "method": "GET", "url": "{{baseUrl}}/api/invoices?page={{page}}&limit={{limit}}&appointmentId={{appointmentId}}" }
+          "request": { "method": "GET", "description": "Optionally filter invoices issued during the current UTC week with period=week or current UTC month with period=month.", "url": "{{baseUrl}}/api/invoices?page={{page}}&limit={{limit}}&appointmentId={{appointmentId}}&period=month" }
+        },
+        {
+          "name": "View invoice PDF",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/invoices/{{id}}/pdf" }
+        },
+        {
+          "name": "Send invoice to patient and doctor",
+          "request": {
+            "method": "POST",
+            "description": "Sends the invoice PDF by email to the patient and doctor and by WhatsApp to the patient. Configure API_BASE_URL (the publicly reachable backend origin), TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_WHATSAPP_FROM for WhatsApp delivery. The WhatsApp PDF link expires after 30 minutes. Partial delivery is reported per channel.",
+            "url": "{{baseUrl}}/api/invoices/{{id}}/send"
+          }
         },
         {
           "name": "Record invoice payment",
@@ -310,7 +323,7 @@
       "item": [
         {
           "name": "Create treatment",
-          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"appointmentId\":\"{{appointmentId}}\",\"treatmentMasterId\":\"{{treatmentMasterId}}\",\"diagnosis\":\"Dental caries\",\"medicines\":[{\"name\":\"Example medication\",\"dose\":\"As directed\"}],\"notes\":\"Follow up if symptoms persist\",\"followUpDate\":\"2026-10-24\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/treatments" }
+          "request": { "method": "POST", "description": "Use treatmentMasterIds to select multiple active treatments from the clinic treatment catalog.", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"appointmentId\":\"{{appointmentId}}\",\"treatmentMasterIds\":[\"{{treatmentMasterId}}\",\"{{treatmentMasterId2}}\"],\"diagnosis\":\"Dental caries\",\"medicines\":[{\"name\":\"Example medication\",\"frequency\":\"As directed\"}],\"notes\":\"Follow up if symptoms persist\",\"followUpDate\":\"2026-10-24\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/treatments" }
         },
         {
           "name": "Autocomplete treatments",
@@ -322,7 +335,7 @@
         },
         {
           "name": "List treatment files",
-          "request": { "method": "GET", "url": "{{baseUrl}}/api/treatments/{{id}}/attachments" }
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/treatments/{{id}}/attachments?page={{page}}&limit={{limit}}" }
         },
         {
           "name": "Download treatment file",
@@ -389,7 +402,7 @@
         },
         {
           "name": "List conditions",
-          "request": { "method": "GET", "url": "{{baseUrl}}/api/conditions?type=DENTAL&status=ACTIVE" }
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/conditions?type=DENTAL&status=ACTIVE&page={{page}}&limit={{limit}}" }
         },
         {
           "name": "Get condition by ID",
@@ -455,7 +468,7 @@
         },
         {
           "name": "List insurances",
-          "request": { "method": "GET", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/api/insurances" }
+          "request": { "method": "GET", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/api/insurances?page={{page}}&limit={{limit}}" }
         },
         {
           "name": "Get insurance by ID",
@@ -484,7 +497,7 @@
         },
         {
           "name": "Payment history",
-          "request": { "method": "GET", "url": "{{baseUrl}}/api/payments/history" }
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/payments/history?page={{page}}&limit={{limit}}" }
         }
       ]
     },

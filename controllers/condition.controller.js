@@ -22,14 +22,29 @@ exports.create = async (req, res) => {
 
 exports.getAll = async (req, res) => {
   try {
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
     const query = { clinicId: req.clinicId };
     if (req.query.type) {
       if (!types.includes(req.query.type)) return res.status(400).json({ success: false, message: 'Invalid condition type' });
       query.type = req.query.type;
     }
     if (req.query.status) query.status = req.query.status;
-    const data = await Condition.find(query).sort({ name: 1 });
-    return res.json({ success: true, data });
+    const [data, count] = await Promise.all([
+      Condition.find(query)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Condition.countDocuments(query)
+    ]);
+    return res.json({
+      success: true,
+      page,
+      limit,
+      count,
+      totalPages: Math.ceil(count / limit),
+      data
+    });
   } catch (err) {
     return res.status(500).json({ success: false, message: 'Unable to load conditions' });
   }

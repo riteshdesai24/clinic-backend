@@ -5,6 +5,16 @@ const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 const twilio = require('twilio');
 
+const validPeriods = ['week', 'month'];
+const periodStart = (period, now = new Date()) => {
+  if (period === 'week') {
+    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    start.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7));
+    return start;
+  }
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+};
+
 // ─── Twilio WhatsApp setup ─────────────────────────────────────────────────
 // Add to your .env:
 //   TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -149,6 +159,13 @@ exports.getAll = async (req, res) => {
 
     const pageNum = Math.max(parseInt(page) || 1, 1);
     const pageLimit = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
+    const period = req.query.period === undefined ? undefined : String(req.query.period).toLowerCase();
+    if (period && !validPeriods.includes(period)) {
+      return res.status(400).json({ success: false, message: 'period must be week or month' });
+    }
+    if (period && date) {
+      return res.status(400).json({ success: false, message: 'Use either period or date, not both' });
+    }
 
     const query = { clinicId: req.clinicId };
 
@@ -173,7 +190,13 @@ exports.getAll = async (req, res) => {
       query.status = status.toUpperCase();
     }
 
-    if (date) {
+    let from;
+    let to;
+    if (period) {
+      to = new Date();
+      from = periodStart(period, to);
+      query.date = { $gte: from, $lte: to };
+    } else if (date) {
       const parsedDate = new Date(date);
       if (isNaN(parsedDate.getTime()))
         return res.status(400).json({ success: false, message: 'Invalid date format' });
@@ -195,7 +218,7 @@ exports.getAll = async (req, res) => {
         .populate('doctorId', 'staffname specialization')
         .populate('patientId', 'name phone age gender')
         .populate('treatmentId', 'diagnosis medicines')
-        .sort({ date: -1, time: 1 })
+        .sort({ createdAt: -1, _id: -1 })
         .skip((pageNum - 1) * pageLimit)
         .limit(pageLimit),
       Appointment.countDocuments(query)
@@ -207,6 +230,7 @@ exports.getAll = async (req, res) => {
       limit: pageLimit,
       totalPages: Math.ceil(count / pageLimit),
       count,
+      ...(period && { period: period.toUpperCase(), from, to }),
       data
     });
 
