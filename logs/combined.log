@@ -338,3 +338,27 @@
 {"level":"info","message":"MongoDB connected","timestamp":"2026-10-11T14:53:55.420Z"}
 {"level":"info","message":"User logged in: 6aca55a746d38ae562d4141d role: DOCTOR","timestamp":"2026-10-11T15:32:46.646Z"}
 {"level":"info","message":"Password changed for user: 6aca55a746d38ae562d4141d","timestamp":"2026-10-11T15:49:12.678Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-17T07:26:36.084Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-17T07:26:36.510Z"}
+{"level":"info","message":"New clinic registered: admin user 6ad326e0a1200ddd4ba52b70","timestamp":"2026-10-17T07:42:24.526Z"}
+{"level":"info","message":"Patient created: 6ad32fc0a1200ddd4ba52c25 for clinic: 6ad326e0a1200ddd4ba52b70","timestamp":"2026-10-17T08:20:16.468Z"}
+{"level":"info","message":"Doctor created: 6ad33020a1200ddd4ba52c3c for clinic admin: 6ad326e0a1200ddd4ba52b70","timestamp":"2026-10-17T08:21:52.546Z"}
+{"level":"info","message":"Email sent to divyavichare2005@gmail.com","timestamp":"2026-10-17T08:21:56.230Z"}
+{"level":"info","message":"Email sent to dishavichare10@gmail.com","timestamp":"2026-10-17T08:21:57.021Z"}
+{"level":"info","message":"Patient updated: 6ad32fc0a1200ddd4ba52c25 by user: 6ad326e0a1200ddd4ba52b70","timestamp":"2026-10-17T08:22:06.889Z"}
+{"level":"info","message":"Appointment created: 6ad33046a1200ddd4ba52c6f for clinic: 6ad326e0a1200ddd4ba52b70","timestamp":"2026-10-17T08:22:30.610Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 9970105846","timestamp":"2026-10-17T08:22:38.585Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 07756945846","timestamp":"2026-10-17T08:22:38.934Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-18T07:11:09.395Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-18T07:11:09.648Z"}
+{"level":"info","message":"User logged in: 6ad326e0a1200ddd4ba52b70 role: ADMIN","timestamp":"2026-10-18T07:11:15.486Z"}
+{"level":"info","message":"Patient created: 6ad471a2276ba941a2b0e6dd for clinic: 6ad326e0a1200ddd4ba52b70","timestamp":"2026-10-18T07:13:38.695Z"}
+{"level":"info","message":"Appointment created: 6ad471bc276ba941a2b0e6e3 for clinic: 6ad326e0a1200ddd4ba52b70","timestamp":"2026-10-18T07:14:04.654Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 8805076409","timestamp":"2026-10-18T07:14:10.590Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 9970105846","timestamp":"2026-10-18T07:14:10.596Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-18T07:16:23.841Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-18T07:16:24.160Z"}
+{"level":"info","message":"Patient created: 6ad4743a736882baba090b07 for clinic: 6ad326e0a1200ddd4ba52b70","timestamp":"2026-10-18T07:24:42.441Z"}
+{"level":"info","message":"Appointment created: 6ad47476736882baba090b26 for clinic: 6ad326e0a1200ddd4ba52b70","timestamp":"2026-10-18T07:25:42.693Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 9892442905","timestamp":"2026-10-18T07:25:43.294Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 9970105846","timestamp":"2026-10-18T07:25:43.299Z"}

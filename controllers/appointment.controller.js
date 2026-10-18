@@ -14,6 +14,16 @@ const periodStart = (period, now = new Date()) => {
   }
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 };
+const periodEnd = (period, start) => {
+  const end = new Date(start);
+  if (period === 'week') {
+    end.setUTCDate(end.getUTCDate() + 7);
+  } else {
+    end.setUTCMonth(end.getUTCMonth() + 1);
+  }
+  end.setUTCMilliseconds(end.getUTCMilliseconds() - 1);
+  return end;
+};
 
 // ─── Twilio WhatsApp setup ─────────────────────────────────────────────────
 // Add to your .env:
@@ -193,8 +203,8 @@ exports.getAll = async (req, res) => {
     let from;
     let to;
     if (period) {
-      to = new Date();
-      from = periodStart(period, to);
+      from = periodStart(period);
+      to = periodEnd(period, from);
       query.date = { $gte: from, $lte: to };
     } else if (date) {
       const parsedDate = new Date(date);
