@@ -1,5 +1,6 @@
 const Patient = require('../models/Patient');
 const Appointment = require('../models/Appointment');
+const Attachment = require('../models/Attachment');
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 const { parseAutocompleteQuery } = require('../utils/autocomplete');
@@ -220,17 +221,30 @@ exports.getById = async (req, res) => {
     }
 
     // ✅ Fetch appointment stats for this patient
-    const [total, completed, pending, cancelled] = await Promise.all([
+    const [total, completed, pending, cancelled, documents] = await Promise.all([
       Appointment.countDocuments({ clinicId: req.clinicId, patientId: id }),
       Appointment.countDocuments({ clinicId: req.clinicId, patientId: id, status: 'COMPLETED' }),
       Appointment.countDocuments({ clinicId: req.clinicId, patientId: id, status: 'PENDING' }),
-      Appointment.countDocuments({ clinicId: req.clinicId, patientId: id, status: 'CANCELLED' })
+      Appointment.countDocuments({ clinicId: req.clinicId, patientId: id, status: 'CANCELLED' }),
+      Attachment.find({ clinicId: req.clinicId, recordType: 'patient', recordId: id })
+        .select('originalName contentType size uploadedBy createdAt')
+        .sort({ createdAt: -1, _id: -1 })
+        .lean()
     ]);
 
     return res.json({
       success: true,
       data: {
         patient,
+        documents: documents.map((document) => ({
+          id: document._id,
+          originalName: document.originalName,
+          contentType: document.contentType,
+          size: document.size,
+          uploadedBy: document.uploadedBy,
+          createdAt: document.createdAt,
+          downloadUrl: `/api/patients/${id}/attachments/${document._id}`
+        })),
         appointmentStats: { total, completed, pending, cancelled }
       }
     });

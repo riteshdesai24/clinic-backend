@@ -20,3 +20,5 @@
 {"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 8692972118","timestamp":"2026-10-11T13:22:57.324Z"}
 {"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 8692972118","timestamp":"2026-10-11T13:32:46.192Z"}
 {"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 9892442905","timestamp":"2026-10-11T13:32:46.194Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to +15551234567","timestamp":"2026-10-21T15:49:40.061Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 8692972118","timestamp":"2026-10-21T15:49:40.063Z"}

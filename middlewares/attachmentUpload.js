@@ -7,6 +7,7 @@ const allowedTypes = {
   '.jpeg': ['image/jpeg'],
   '.png': ['image/png'],
   '.gif': ['image/gif'],
+  '.svg': ['image/svg+xml'],
   '.xls': ['application/vnd.ms-excel'],
   '.xlsx': ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
   '.csv': ['text/csv', 'text/plain', 'application/vnd.ms-excel'],
@@ -18,7 +19,7 @@ const allowedTypes = {
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024,
+    fileSize: 24 * 1024 * 1024,
     files: 5
   },
   fileFilter(req, file, callback) {
@@ -38,7 +39,7 @@ module.exports = (req, res, next) => {
     const status = tooLarge ? 413 : 400;
     return res.status(status).json({
       success: false,
-      message: tooLarge ? 'Each file must be 5 MB or smaller' : error.message
+      message: tooLarge ? 'Each file must be 24 MB or smaller' : error.message
     });
   });
 };

@@ -5,6 +5,19 @@ const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 const twilio = require('twilio');
 
+// Keep the populated patient object for existing clients, and expose a flat
+// patientName field for calendar and list views that need a simple label.
+const withPatientName = (appointment) => {
+  if (!appointment) return appointment;
+  const data = typeof appointment.toObject === 'function'
+    ? appointment.toObject()
+    : { ...appointment };
+  data.patientName = data.patientId && typeof data.patientId === 'object'
+    ? data.patientId.name || null
+    : null;
+  return data;
+};
+
 const validPeriods = ['week', 'month'];
 const periodStart = (period, now = new Date()) => {
   if (period === 'week') {
@@ -142,7 +155,7 @@ exports.create = async (req, res) => {
     return res.status(201).json({
       success: true,
       message: 'Appointment created successfully',
-      data: populated
+      data: withPatientName(populated)
     });
 
   } catch (err) {
@@ -231,7 +244,7 @@ exports.getAll = async (req, res) => {
       totalPages: Math.ceil(count / pageLimit),
       count,
       ...(period && { period: period.toUpperCase(), from, to }),
-      data
+      data: data.map(withPatientName)
     });
 
   } catch (err) {
@@ -263,7 +276,7 @@ exports.getById = async (req, res) => {
     if (!appointment)
       return res.status(404).json({ success: false, message: 'Appointment not found' });
 
-    return res.json({ success: true, data: appointment });
+    return res.json({ success: true, data: withPatientName(appointment) });
 
   } catch (err) {
     logger.error('Get Appointment Error', { error: err.message, stack: err.stack });
@@ -379,7 +392,7 @@ exports.update = async (req, res) => {
     return res.json({
       success: true,
       message: 'Appointment updated successfully',
-      data: appointment
+      data: withPatientName(appointment)
     });
 
   } catch (err) {
@@ -449,7 +462,7 @@ exports.remove = async (req, res) => {
     return res.json({
       success: true,
       message: 'Appointment cancelled successfully',
-      data: appointment
+      data: withPatientName(appointment)
     });
 
   } catch (err) {
@@ -508,7 +521,7 @@ exports.getCalendar = async (req, res) => {
       const d = new Date(appt.date);
       const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
       if (!grouped[key]) grouped[key] = [];
-      grouped[key].push(appt);
+      grouped[key].push(withPatientName(appt));
     }
 
     return res.json({

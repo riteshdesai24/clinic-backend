@@ -87,7 +87,7 @@ module.exports = (RecordModel, recordType) => {
           totalPages: Math.ceil(count / limit),
           data: attachments.map((attachment) => ({
             ...attachmentData(attachment),
-            downloadUrl: `/api/${recordType === 'appointment' ? 'appointments' : 'treatments'}/${record._id}/attachments/${attachment._id}`
+            downloadUrl: `/api/${recordType === 'appointment' ? 'appointments' : recordType === 'patient' ? 'patients' : 'treatments'}/${record._id}/attachments/${attachment._id}`
           }))
         });
       } catch (err) {
