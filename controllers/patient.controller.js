@@ -243,7 +243,8 @@ exports.getById = async (req, res) => {
           size: document.size,
           uploadedBy: document.uploadedBy,
           createdAt: document.createdAt,
-          downloadUrl: `/api/patients/${id}/attachments/${document._id}`
+          downloadUrl: `/api/patients/${id}/attachments/${document._id}`,
+          previewUrl: `/api/patients/${id}/attachments/${document._id}/preview`
         })),
         appointmentStats: { total, completed, pending, cancelled }
       }

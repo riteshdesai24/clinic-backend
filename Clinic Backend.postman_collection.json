@@ -115,8 +115,45 @@
           "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"phone\":\"+15551234567\",\"email\":\"clinic.demo@example.com\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/profile" }
         },
         {
+          "name": "Upload clinic logo",
+          "request": { "method": "PUT", "body": { "mode": "formdata", "formdata": [{ "key": "logo", "type": "file", "src": null }] }, "url": "{{baseUrl}}/api/profile/logo" }
+        },
+        {
+          "name": "Get clinic logo",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/profile/logo" }
+        },
+        {
+          "name": "Delete clinic logo",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/profile/logo" }
+        },
+        {
           "name": "Deactivate my profile",
           "request": { "method": "DELETE", "url": "{{baseUrl}}/api/profile" }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Create user",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"staffname\":\"Jamie User\",\"email\":\"jamie.user@example.com\",\"phone\":\"+15551234567\",\"role\":\"STAFF\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/users" }
+        },
+        {
+          "name": "List users",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/users?cursor={{cursor}}&limit={{limit}}&search={{search}}&sort=asc" }
+        },
+        {
+          "name": "Get user by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/users/{{id}}" }
+        },
+        {
+          "name": "Update user",
+          "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"phone\":\"+15557654321\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/users/{{id}}" }
+        },
+        {
+          "name": "Delete user",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/users/{{id}}" }
         }
       ]
     },
@@ -169,6 +206,22 @@
           "request": { "method": "GET", "url": "{{baseUrl}}/api/doctors/{{doctorId}}" }
         },
         {
+          "name": "Upload doctor files",
+          "request": { "method": "POST", "body": { "mode": "formdata", "formdata": [{ "key": "files", "type": "file", "src": null }, { "key": "fileName", "type": "text", "description": "Optional display file name; use with a single uploaded file." }] }, "url": "{{baseUrl}}/api/doctors/{{doctorId}}/attachments" }
+        },
+        {
+          "name": "List doctor files",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/doctors/{{doctorId}}/attachments?page={{page}}&limit={{limit}}" }
+        },
+        {
+          "name": "Download doctor file",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/doctors/{{doctorId}}/attachments/{{attachmentId}}" }
+        },
+        {
+          "name": "Delete doctor file",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/doctors/{{doctorId}}/attachments/{{attachmentId}}" }
+        },
+        {
           "name": "Update doctor",
           "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"specialization\":\"Endodontics\",\"available\":true}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/doctors/{{doctorId}}" }
         },
@@ -216,7 +269,7 @@
         },
         {
           "name": "Upload appointment files",
-          "request": { "method": "POST", "body": { "mode": "formdata", "formdata": [{ "key": "files", "type": "file", "src": null }] }, "url": "{{baseUrl}}/api/appointments/{{appointmentId}}/attachments" }
+          "request": { "method": "POST", "body": { "mode": "formdata", "formdata": [{ "key": "files", "type": "file", "src": null }, { "key": "fileName", "type": "text", "description": "Optional display file name; use with a single uploaded file." }] }, "url": "{{baseUrl}}/api/appointments/{{appointmentId}}/attachments" }
         },
         {
           "name": "List appointment files",
@@ -331,7 +384,7 @@
         },
         {
           "name": "Upload treatment files",
-          "request": { "method": "POST", "body": { "mode": "formdata", "formdata": [{ "key": "files", "type": "file", "src": null }] }, "url": "{{baseUrl}}/api/treatments/{{id}}/attachments" }
+          "request": { "method": "POST", "body": { "mode": "formdata", "formdata": [{ "key": "files", "type": "file", "src": null }, { "key": "fileName", "type": "text", "description": "Optional display file name; use with a single uploaded file." }] }, "url": "{{baseUrl}}/api/treatments/{{id}}/attachments" }
         },
         {
           "name": "List treatment files",

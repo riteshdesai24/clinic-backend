@@ -11,6 +11,7 @@ r.get('/autocomplete', protect, allowRoles('ADMIN', 'STAFF', 'DOCTOR'), c.autoco
 r.post('/:id/attachments', protect, allowRoles('ADMIN', 'STAFF', 'DOCTOR'), attachmentUpload, attachments.upload);
 r.get('/:id/attachments', protect, allowRoles('ADMIN', 'STAFF', 'DOCTOR'), attachments.list);
 r.get('/:id/attachments/:attachmentId', protect, allowRoles('ADMIN', 'STAFF', 'DOCTOR'), attachments.download);
+r.get('/:id/attachments/:attachmentId/preview', protect, allowRoles('ADMIN', 'STAFF', 'DOCTOR'), attachments.preview);
 r.delete('/:id/attachments/:attachmentId', protect, allowRoles('ADMIN', 'STAFF', 'DOCTOR'), attachments.remove);
 r.get('/', protect, allowRoles('ADMIN', 'STAFF', 'DOCTOR'), c.getAll);
 r.get('/:id', protect, allowRoles('ADMIN', 'STAFF', 'DOCTOR'), c.getById);

@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Appointment = require('../models/Appointment');
+const Attachment = require('../models/Attachment');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const sendEmail = require('../utils/sendEmail');
@@ -302,17 +303,31 @@ exports.getById = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Doctor not found' });
     }
 
-    const [total, completed, pending, cancelled] = await Promise.all([
+    const [total, completed, pending, cancelled, documents] = await Promise.all([
       Appointment.countDocuments({ clinicId: req.clinicId, doctorId: doctor._id }),
       Appointment.countDocuments({ clinicId: req.clinicId, doctorId: doctor._id, status: 'COMPLETED' }),
       Appointment.countDocuments({ clinicId: req.clinicId, doctorId: doctor._id, status: 'PENDING' }),
-      Appointment.countDocuments({ clinicId: req.clinicId, doctorId: doctor._id, status: 'CANCELLED' })
+      Appointment.countDocuments({ clinicId: req.clinicId, doctorId: doctor._id, status: 'CANCELLED' }),
+      Attachment.find({ clinicId: req.clinicId, recordType: 'doctor', recordId: doctor._id })
+        .select('originalName contentType size uploadedBy createdAt')
+        .sort({ createdAt: -1, _id: -1 })
+        .lean()
     ]);
 
     return res.json({
       success: true,
       data: {
         doctor,
+        documents: documents.map((document) => ({
+          id: document._id,
+          originalName: document.originalName,
+          contentType: document.contentType,
+          size: document.size,
+          uploadedBy: document.uploadedBy,
+          createdAt: document.createdAt,
+          downloadUrl: `/api/doctors/${doctor._id}/attachments/${document._id}`,
+          previewUrl: `/api/doctors/${doctor._id}/attachments/${document._id}/preview`
+        })),
         appointmentStats: { total, completed, pending, cancelled }
       }
     });

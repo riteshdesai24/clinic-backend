@@ -11,6 +11,7 @@ r.post('/', protect, c.create);
 r.post('/:id/attachments', protect, attachmentUpload, attachments.upload);
 r.get('/:id/attachments', protect, attachments.list);
 r.get('/:id/attachments/:attachmentId', protect, attachments.download);
+r.get('/:id/attachments/:attachmentId/preview', protect, attachments.preview);
 r.delete('/:id/attachments/:attachmentId', protect, attachments.remove);
 
 // List

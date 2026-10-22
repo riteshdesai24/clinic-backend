@@ -38,7 +38,7 @@ app.options('*', cors());
 
 // ✅ Body parser — kept your rawBody for webhook signature verification
 app.use(express.json({
-  limit: '10kb',
+  limit: '7mb',
   verify: (req, res, buf) => { req.rawBody = buf; }
 }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
@@ -59,6 +59,7 @@ app.get('/api', (req, res) => {
 // ✅ Routes
 app.use('/api/auth',         require('./routes/auth.routes'));
 app.use('/api/profile',      require('./routes/profile.routes'));
+app.use('/api/users',        require('./routes/user.routes'));
 app.use('/api/staff',        require('./routes/staff.routes'));
 app.use('/api/doctors',      require('./routes/doctor.routes'));
 app.use('/api/patients',     require('./routes/patient.routes'));

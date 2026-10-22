@@ -364,3 +364,53 @@
 {"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 9970105846","timestamp":"2026-10-18T07:25:43.299Z"}
 {"level":"info","message":"Server running on port 3000","timestamp":"2026-10-21T17:23:00.203Z"}
 {"level":"info","message":"MongoDB connected","timestamp":"2026-10-21T17:23:00.584Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-22T14:21:03.213Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-22T14:21:03.956Z"}
+{"level":"info","message":"User logged in: 6aca3b90411f4180de331e42 role: ADMIN","timestamp":"2026-10-22T14:22:20.676Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-22T14:35:26.788Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-22T14:35:27.258Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-22T14:40:45.308Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-22T14:40:45.734Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-22T14:40:51.319Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-22T14:40:51.673Z"}
+{"level":"info","message":"Doctor updated: 6aca55a746d38ae562d4141d by admin: 6aca3b90411f4180de331e42","timestamp":"2026-10-22T14:46:18.267Z"}
+{"level":"info","message":"Doctor updated: 6aca55a746d38ae562d4141d by admin: 6aca3b90411f4180de331e42","timestamp":"2026-10-22T14:46:29.282Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-22T14:47:12.692Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-22T14:47:13.066Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-22T14:47:19.920Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-22T14:47:20.285Z"}
+{"level":"info","message":"Doctor updated: 6aca55a746d38ae562d4141d by admin: 6aca3b90411f4180de331e42","timestamp":"2026-10-22T14:47:30.786Z"}
+{"level":"info","message":"Patient updated: 6acb461358d0487a52a7ca4a by user: 6aca3b90411f4180de331e42","timestamp":"2026-10-22T14:51:12.803Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-22T14:53:30.627Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-22T14:53:31.026Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-22T14:53:34.916Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-22T14:53:35.293Z"}
+{"level":"info","message":"Treatment created: 6ada2cdc2722b0a732221dd8 for appointment: 6ad8df132a660cdd00123d76","timestamp":"2026-10-22T15:33:48.700Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-22T15:47:47.665Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-22T15:47:48.055Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-22T15:47:54.596Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-22T15:47:54.942Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-22T15:48:02.461Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-22T15:48:03.101Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-22T15:48:10.904Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-22T15:48:11.264Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-22T15:48:20.899Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-22T15:48:22.473Z"}
+{"error":"request entity too large","level":"error","message":"Unhandled Error","stack":"PayloadTooLargeError: request entity too large\n    at readStream (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/raw-body/index.js:163:17)\n    at getRawBody (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/raw-body/index.js:116:12)\n    at read (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/body-parser/lib/read.js:79:3)\n    at jsonParser (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/body-parser/lib/types/json.js:138:5)\n    at Layer.handle [as handle_request] (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/express/lib/router/layer.js:95:5)\n    at trim_prefix (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/express/lib/router/index.js:328:13)\n    at /Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/express/lib/router/index.js:286:9\n    at Function.process_params (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/express/lib/router/index.js:346:12)\n    at next (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/express/lib/router/index.js:280:10)\n    at cors (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/cors/lib/index.js:188:7)","timestamp":"2026-10-22T15:48:58.008Z"}
+{"error":"request entity too large","level":"error","message":"Unhandled Error","stack":"PayloadTooLargeError: request entity too large\n    at readStream (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/raw-body/index.js:163:17)\n    at getRawBody (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/raw-body/index.js:116:12)\n    at read (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/body-parser/lib/read.js:79:3)\n    at jsonParser (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/body-parser/lib/types/json.js:138:5)\n    at Layer.handle [as handle_request] (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/express/lib/router/layer.js:95:5)\n    at trim_prefix (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/express/lib/router/index.js:328:13)\n    at /Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/express/lib/router/index.js:286:9\n    at Function.process_params (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/express/lib/router/index.js:346:12)\n    at next (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/express/lib/router/index.js:280:10)\n    at cors (/Users/riteshdesai/Angular/clinic-backend/clinic-backend/node_modules/cors/lib/index.js:188:7)","timestamp":"2026-10-22T15:49:09.076Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-22T15:50:15.471Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-22T15:50:15.932Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-22T15:53:51.793Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-22T15:53:52.331Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-22T15:54:11.056Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-22T15:54:11.491Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-22T15:54:14.376Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-22T15:54:14.764Z"}
+{"level":"info","message":"Appointment created: 6ada32528e8d07aab099a992 for clinic: 6aca3b90411f4180de331e42","timestamp":"2026-10-22T15:57:06.962Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 8805076409","timestamp":"2026-10-22T15:57:07.526Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 8692972118","timestamp":"2026-10-22T15:57:07.537Z"}
+{"level":"info","message":"Treatment created: 6ada326b8e8d07aab099a9ae for appointment: 6ada32528e8d07aab099a992","timestamp":"2026-10-22T15:57:31.698Z"}
+{"level":"info","message":"Appointment created: 6ada32e38e8d07aab099aa2a for clinic: 6aca3b90411f4180de331e42","timestamp":"2026-10-22T15:59:32.019Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to +15551234567","timestamp":"2026-10-22T15:59:32.322Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 8692972118","timestamp":"2026-10-22T15:59:32.329Z"}
+{"level":"info","message":"Treatment created: 6ada32f78e8d07aab099aa46 for appointment: 6ada32e38e8d07aab099aa2a","timestamp":"2026-10-22T15:59:51.979Z"}

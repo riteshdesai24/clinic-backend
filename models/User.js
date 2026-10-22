@@ -53,6 +53,18 @@ const UserSchema = new mongoose.Schema(
       trim: true
     },
 
+    logoContentType: {
+      type: String,
+      select: false
+    },
+
+    logoContent: {
+      type: Buffer,
+      select: false
+    },
+
+    logoUpdatedAt: Date,
+
     // Doctor-only fields
     specialization: {
       type: String,

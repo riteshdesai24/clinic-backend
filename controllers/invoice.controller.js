@@ -93,13 +93,18 @@ const generateInvoicePdf = invoice => new Promise((resolve, reject) => {
   };
 
   doc.fillColor(ink);
-  doc.font('Helvetica-Bold').fontSize(11)
-    .text(clinicName.toUpperCase(), left, 52, { width: 245, height: 32 });
+  if (clinic?.logoContent && ['image/png', 'image/jpeg'].includes(clinic.logoContentType)) {
+    try {
+      doc.image(clinic.logoContent, left, 52, { fit: [245, 58], align: 'left', valign: 'center' });
+    } catch (error) {
+      doc.font('Helvetica-Bold').fontSize(18).text(clinicName.toUpperCase(), left, 66, { width: 245, height: 32 });
+    }
+  } else {
+    doc.font('Helvetica-Bold').fontSize(18).text(clinicName.toUpperCase(), left, 66, { width: 245, height: 32 });
+  }
   doc.font('Helvetica').fontSize(10).fillColor(muted)
     .text(`NO. ${invoice.invoiceNumber}`, left, 56, { width: contentWidth, align: 'right' });
 
-  doc.fillColor(ink).font('Helvetica-Bold').fontSize(48)
-    .text(clinicName.toUpperCase(), left, 112);
   doc.font('Helvetica-Bold').fontSize(10).fillColor(ink).text('Date:', left, 184, { continued: true });
   doc.font('Helvetica').text(`  ${formatInvoiceDate(invoice.issuedAt)}`);
   if (invoice.dueDate) {
@@ -218,7 +223,7 @@ const getInvoiceForUser = (id, req) => {
   return Invoice.findOne(query)
     .populate('patientId', 'title firstName middleName lastName suffix email phone whatsappNumber address1 address2 city state pincode')
     .populate('doctorId', 'staffname email')
-    .populate('clinicId', 'clinicName staffname email phone address');
+    .populate({ path: 'clinicId', select: 'clinicName staffname email phone address +logoContent +logoContentType' });
 };
 
 const sendInvoicePdf = async (res, invoice, disposition = 'inline') => {
@@ -264,7 +269,7 @@ exports.publicPdf = async (req, res) => {
     const invoice = await Invoice.findById(id)
       .populate('patientId', 'title firstName middleName lastName suffix email phone whatsappNumber address1 address2 city state pincode')
       .populate('doctorId', 'staffname email')
-      .populate('clinicId', 'clinicName staffname email phone address');
+      .populate({ path: 'clinicId', select: 'clinicName staffname email phone address +logoContent +logoContentType' });
     if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
     return await sendInvoicePdf(res, invoice, 'attachment');
   } catch (error) {

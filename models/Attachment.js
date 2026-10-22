@@ -10,7 +10,7 @@ const AttachmentSchema = new mongoose.Schema(
     },
     recordType: {
       type: String,
-      enum: ['appointment', 'treatment', 'patient'],
+      enum: ['appointment', 'treatment', 'patient', 'doctor'],
       required: true
     },
     recordId: {
