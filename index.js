@@ -28,6 +28,8 @@ app.use(xss());           // prevents XSS
 app.use(cors({
   origin: [
     'https://clinic-frontend-6swn.onrender.com',
+    'https://technosolutions.ind.in',
+    'https://www.technosolutions.ind.in',
     'http://localhost:4200',
     'https://your-frontend.netlify.app',
     process.env.FRONTEND_URL
