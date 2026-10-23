@@ -4,7 +4,6 @@ const planSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      enum: ['FREE', 'SILVER', 'GOLD'],
       unique: true,
       required: true,
       index: true

@@ -43,7 +43,6 @@ const UserSchema = new mongoose.Schema(
     // Only meaningful on ADMIN users
     plan: {
       type: String,
-      enum: ['BRONZE', 'GOLD', 'PLATINUM'],
       default: 'GOLD' // 🔄 Change to 'BRONZE' when plan system is ready
     },
 

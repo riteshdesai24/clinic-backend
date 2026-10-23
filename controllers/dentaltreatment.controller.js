@@ -73,7 +73,7 @@ exports.getAll = async (req, res) => {
 
     // ✅ Always scoped to clinic
     const clinicId = req.clinicId;
-    const query = { clinicId };
+    const query = { $or: [{ clinicId }, { clinicId: null }] };
 
     if (status) {
       if (!['ACTIVE', 'INACTIVE'].includes(status)) {
@@ -83,10 +83,10 @@ exports.getAll = async (req, res) => {
     }
 
     if (search) {
-      query.$or = [
+      query.$and = [{ $or: [
         { name: { $regex: search.trim(), $options: 'i' } },
         { description: { $regex: search.trim(), $options: 'i' } }
-      ];
+      ] }];
     }
 
     const [data, count] = await Promise.all([
@@ -124,7 +124,7 @@ exports.getById = async (req, res) => {
 
     const treatmentMaster = await TreatmentType.findOne({
       _id: id,
-      clinicId: req.clinicId // ✅ clinic-scoped
+      $or: [{ clinicId: req.clinicId }, { clinicId: null }]
     });
 
     if (!treatmentMaster) {

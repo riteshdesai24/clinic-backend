@@ -5,7 +5,6 @@ const TreatmentTypeSchema = new mongoose.Schema(
     clinicId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User', // ✅ ADMIN user = clinic
-      required: true,
       index: true
     },
 

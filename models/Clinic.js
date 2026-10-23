@@ -31,7 +31,6 @@ const ClinicSchema = new mongoose.Schema(
 
     plan: {
       type: String,
-      enum: ['BRONZE', 'GOLD', 'PLATINUM'],
       default: 'GOLD' // 🔄 Change to 'BRONZE' when plan system is ready
     },
 

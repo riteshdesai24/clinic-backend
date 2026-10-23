@@ -1,8 +1,9 @@
 const r = require('express').Router();
 const c = require('../controllers/plan.controller');
+const { protect } = require('../super-admin/super-admin.middleware');
 
 // Create plan
-r.post('/', c.create);
+r.post('/', protect, c.create);
 
 // List plans
 r.get('/', c.list);
@@ -11,9 +12,9 @@ r.get('/', c.list);
 r.get('/:id', c.getById);
 
 // Update plan
-r.put('/:id', c.update);
+r.put('/:id', protect, c.update);
 
 // Delete plan
-r.delete('/:id', c.remove);
+r.delete('/:id', protect, c.remove);
 
 module.exports = r;

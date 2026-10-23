@@ -74,6 +74,8 @@ app.use('/api/plans',          require('./routes/plan.routes'));
 app.use('/api/insurances',     require('./routes/insurance.routes'));
 app.use('/api/payments',     require('./routes/payment.routes'));
 app.use('/api/webhooks',     require('./routes/webhook.routes'));
+app.use('/api/super-admin',  require('./super-admin/super-admin.routes'));
+app.use('/api/superadmin',   require('./super-admin/super-admin.routes'));
 
 // ✅ 404 handler
 app.use((req, res) => {
