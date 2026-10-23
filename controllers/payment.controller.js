@@ -24,7 +24,14 @@ exports.createOrder = async (req, res) => {
     return res.json({ success: true, order, plan: { name: plan.name, price: plan.price } });
   } catch (error) {
     console.error('Create payment order error:', error);
-    return res.status(500).json({ success: false, message: 'Could not create payment order' });
+    const providerError = error.error || {};
+    const status = Number.isInteger(error.statusCode) && error.statusCode >= 400 ? 502 : 500;
+    return res.status(status).json({
+      success: false,
+      message: providerError.description || 'Could not create payment order',
+      ...(providerError.code ? { code: providerError.code } : {}),
+      ...(providerError.reason ? { reason: providerError.reason } : {})
+    });
   }
 };
 
