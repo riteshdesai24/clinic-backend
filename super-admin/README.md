@@ -34,11 +34,11 @@ Country fields: `name`, optional `code`. State fields: `name`, `country` (countr
 ## Memberships
 
 - `GET /api/super-admin/memberships`
-- `POST /api/super-admin/memberships` — `{ "name", "price", "staffAllowed?" }`
+- `POST /api/super-admin/memberships` — `{ "name", "price", "durationMonths?", "staffAllowed?", "description?", "features?: string[]" }`
 - `PUT /api/super-admin/memberships/:id`
 - `DELETE /api/super-admin/memberships/:id`
 
-The existing `Plan` collection is used for memberships. `GET /api/plans` remains available to the clinic app; write operations on `/api/plans` also require a super admin token.
+The existing `Plan` collection is used for memberships. `features` is an array of strings, such as `Appointment scheduling` and `Invoice management`, and `description` is a summary shown with the plan. Membership list/detail/create/update responses and `GET /api/plans` include both fields. `GET /api/plans` remains available to the clinic app; write operations on `/api/plans` also require a super admin token. In the Excel template, separate multiple features in one cell with `|` or `;`.
 
 ## Treatment and lab masters
 

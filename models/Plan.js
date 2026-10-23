@@ -16,6 +16,17 @@ const planSchema = new mongoose.Schema(
       validate: { validator: Number.isInteger, message: 'Plan price must be a whole number of rupees' }
     },
 
+    description: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+
+    features: {
+      type: [{ type: String, trim: true }],
+      default: []
+    },
+
     durationMonths: {
       type: Number,
       required: true,

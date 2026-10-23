@@ -215,7 +215,7 @@ const excelResources = {
   countries: ['name', 'code'],
   states: ['name', 'country'],
   cities: ['name', 'state', 'country'],
-  memberships: ['name', 'price', 'staffAllowed'],
+  memberships: ['name', 'price', 'durationMonths', 'staffAllowed', 'description', 'features'],
   treatments: ['name', 'description', 'duration', 'price', 'status'],
   labs: ['name', 'code', 'description', 'email', 'phone', 'address']
 };
@@ -302,8 +302,22 @@ exports.importExcel = async (req, res) => {
           if (!name) throw new Error('name is required');
           const price = Number(excelValue(row, 'price'));
           if (!Number.isFinite(price) || price < 0) throw new Error('price must be a non-negative number');
+          const durationValue = excelValue(row, 'durationMonths');
+          const durationMonths = durationValue === undefined ? 1 : Number(durationValue);
+          if (!Number.isInteger(durationMonths) || durationMonths < 1 || durationMonths > 36) throw new Error('durationMonths must be a whole number between 1 and 36');
           Model = Plan; filter = { name: name.toUpperCase() };
-          data = { name: name.toUpperCase(), price, staffAllowed: boolValue(excelValue(row, 'staffAllowed')) };
+          const featureCell = excelValue(row, 'features');
+          const features = Array.isArray(featureCell)
+            ? featureCell
+            : (featureCell ? String(featureCell).split(/[|;\n]/).map((feature) => feature.trim()).filter(Boolean) : []);
+          data = {
+            name: name.toUpperCase(),
+            price,
+            durationMonths,
+            staffAllowed: boolValue(excelValue(row, 'staffAllowed')),
+            description: excelValue(row, 'description') || '',
+            features
+          };
         } else if (resource === 'treatments') {
           if (!name) throw new Error('name is required');
           const priceValue = excelValue(row, 'price');

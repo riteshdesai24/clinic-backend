@@ -450,3 +450,16 @@
 {"level":"info","message":"MongoDB connected","timestamp":"2026-10-23T16:29:25.002Z"}
 {"level":"info","message":"Server running on port 3000","timestamp":"2026-10-23T16:29:35.460Z"}
 {"level":"info","message":"MongoDB connected","timestamp":"2026-10-23T16:29:36.350Z"}
+{"level":"info","message":"User logged in: 6a1bd200f50d7a73a39f5e37 role: ADMIN","timestamp":"2026-10-23T16:30:28.605Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-23T16:34:43.648Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-23T16:34:44.224Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-23T16:39:27.776Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-23T16:39:29.550Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-23T16:47:29.490Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-23T16:47:30.430Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-23T16:47:44.905Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-23T16:47:45.328Z"}
+{"level":"info","message":"User logged in: 6a1bd200f50d7a73a39f5e37 role: ADMIN","timestamp":"2026-10-23T16:50:10.765Z"}
+{"level":"info","message":"Appointment created: 6adb928a4554b796144bc899 for clinic: 6a1bd200f50d7a73a39f5e37","timestamp":"2026-10-23T16:59:54.928Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 9892442905","timestamp":"2026-10-23T16:59:55.454Z"}
+{"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 8805076409","timestamp":"2026-10-23T16:59:55.644Z"}
