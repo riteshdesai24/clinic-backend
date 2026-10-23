@@ -12,7 +12,17 @@ const planSchema = new mongoose.Schema(
     price: {
       type: Number,
       required: true,
-      min: 0
+      min: 0,
+      validate: { validator: Number.isInteger, message: 'Plan price must be a whole number of rupees' }
+    },
+
+    durationMonths: {
+      type: Number,
+      required: true,
+      default: 1,
+      min: 1,
+      max: 36,
+      validate: { validator: Number.isInteger, message: 'Plan duration must be a whole number of months' }
     },
 
     staffAllowed: {

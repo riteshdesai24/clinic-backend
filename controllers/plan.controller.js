@@ -24,6 +24,10 @@ exports.create = async (req, res) => {
       });
     }
 
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+
     return res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -110,6 +114,9 @@ exports.update = async (req, res) => {
     });
   } catch (error) {
     console.error('Update Plan Error:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     return res.status(500).json({
       success: false,
       message: 'Internal server error'

@@ -66,7 +66,7 @@ exports.registerClinic = async (req, res) => {
       email,
       password: hashedPassword,
       role: 'ADMIN',
-      plan: 'GOLD' // 🔄 Change to 'BRONZE' when plan system is ready
+      plan: 'FREE'
     });
 
     const token = generateToken(user);
@@ -77,10 +77,12 @@ exports.registerClinic = async (req, res) => {
     success: true,
     message: 'Clinic registered successfully',
     token,
-    clinic: {                        // ✅ Add this — matches login shape
+      clinic: {                        // ✅ Add this — matches login shape
       _id: user._id,
       clinicName: user.clinicName,
-      plan: user.plan
+      plan: user.plan,
+      planActivatedAt: user.planActivatedAt,
+      planExpiresAt: user.planExpiresAt
     },
     user: {
       _id: user._id,
@@ -132,7 +134,7 @@ exports.login = async (req, res) => {
     // ✅ For STAFF/DOCTOR — fetch the ADMIN (clinic owner) to get clinicName + plan
     let clinicInfo = null;
     if (user.role !== 'ADMIN' && user.clinicId) {
-      clinicInfo = await User.findById(user.clinicId).select('clinicName plan email phone');
+      clinicInfo = await User.findById(user.clinicId).select('clinicName plan planActivatedAt planExpiresAt email phone');
     }
 
     const token = generateToken(user);
@@ -145,8 +147,20 @@ exports.login = async (req, res) => {
       message: 'Login successful',
       token,
       clinic: user.role === 'ADMIN'
-        ? { _id: user._id, clinicName: user.clinicName, plan: user.plan }
-        : { _id: user.clinicId, clinicName: clinicInfo?.clinicName, plan: clinicInfo?.plan },
+        ? {
+            _id: user._id,
+            clinicName: user.clinicName,
+            plan: user.plan,
+            planActivatedAt: user.planActivatedAt,
+            planExpiresAt: user.planExpiresAt
+          }
+        : {
+            _id: user.clinicId,
+            clinicName: clinicInfo?.clinicName,
+            plan: clinicInfo?.plan,
+            planActivatedAt: clinicInfo?.planActivatedAt,
+            planExpiresAt: clinicInfo?.planExpiresAt
+          },
       user: safeUser
     });
 

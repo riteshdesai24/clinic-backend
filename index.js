@@ -8,7 +8,17 @@ const xss = require('xss-clean');
 const logger = require('./utils/logger');
 
 // ✅ Validate critical env vars at startup
-const requiredEnvVars = ['JWT_SECRET', 'MONGO_URI', 'FRONTEND_URL', 'SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'];
+const requiredEnvVars = [
+  'JWT_SECRET',
+  'MONGO_URI',
+  'FRONTEND_URL',
+  'SMTP_HOST',
+  'SMTP_USER',
+  'SMTP_PASS',
+  'RAZORPAY_KEY_ID',
+  'RAZORPAY_KEY_SECRET',
+  'RAZORPAY_WEBHOOK_SECRET'
+];
 requiredEnvVars.forEach((key) => {
   if (!process.env[key]) throw new Error(`Missing required env var: ${key}`);
 });
@@ -28,6 +38,8 @@ app.use(xss());           // prevents XSS
 app.use(cors({
   origin: [
     'https://clinic-frontend-6swn.onrender.com',
+    'https://technosolutions.ind.in',
+    'https://www.technosolutions.ind.in',
     'http://localhost:4200',
     'https://your-frontend.netlify.app',
     process.env.FRONTEND_URL
