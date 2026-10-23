@@ -1,8 +1,8 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const Payment = require('../models/Payment');
-const Clinic = require('../models/Clinic');
 const Plan = require('../models/Plan');
+const activateMembership = require('../utils/activateMembership');
 const fs = require('fs');
 const PDFDocument = require('pdfkit');
 const razorpay = new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET });
@@ -20,8 +20,20 @@ exports.createOrder = async (req, res) => {
     // Razorpay limits receipt IDs to 40 characters.
     const receipt = `sub_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`;
     const order = await razorpay.orders.create({ amount, currency: 'INR', receipt });
-    await Payment.create({ clinicId: req.clinicId, plan: plan.name, orderId: order.id, amount, status: 'CREATED' });
-    return res.json({ success: true, order, plan: { name: plan.name, price: plan.price } });
+    await Payment.create({
+      clinicId: req.clinicId,
+      plan: plan.name,
+      durationMonths: plan.durationMonths,
+      orderId: order.id,
+      amount,
+      status: 'CREATED'
+    });
+    return res.json({
+      success: true,
+      keyId: process.env.RAZORPAY_KEY_ID,
+      order,
+      plan: { name: plan.name, price: plan.price, durationMonths: plan.durationMonths }
+    });
   } catch (error) {
     console.error('Create payment order error:', error);
     const providerError = error.error || {};
@@ -45,25 +57,50 @@ exports.verifyPayment = async (req, res) => {
     const a = Buffer.from(expected, 'hex');
     const b = Buffer.from(razorpay_signature, 'hex');
     if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return res.status(400).json({ success: false, message: 'Invalid payment signature' });
-    if (payment.status !== 'SUCCESS') {
-      payment.status = 'SUCCESS';
-      payment.paymentId = razorpay_payment_id;
-      await payment.save();
-      await Clinic.findByIdAndUpdate(payment.clinicId, { plan: payment.plan, planActivatedAt: new Date() });
+
+    const gatewayPayment = await razorpay.payments.fetch(razorpay_payment_id);
+    if (gatewayPayment.order_id !== payment.orderId || gatewayPayment.amount !== payment.amount || gatewayPayment.currency !== 'INR') {
+      return res.status(400).json({ success: false, message: 'Payment does not match the saved order' });
     }
-    fs.mkdirSync('invoices', { recursive: true });
+    if (gatewayPayment.status !== 'captured') {
+      return res.status(202).json({
+        success: false,
+        status: gatewayPayment.status,
+        message: 'Payment is not captured yet; membership will activate after capture'
+      });
+    }
+
+    await activateMembership(payment, razorpay_payment_id);
     if (!payment.invoicePath) {
       const invoicePath = `invoices/${payment._id}.pdf`;
-      const doc = new PDFDocument();
-      doc.pipe(fs.createWriteStream(invoicePath));
-      doc.text('Clinic Subscription Invoice');
-      doc.text(`Plan: ${payment.plan}`);
-      doc.text(`Amount: INR ${(payment.amount / 100).toFixed(2)}`);
-      doc.end();
-      payment.invoicePath = invoicePath;
-      await payment.save();
+      try {
+        fs.mkdirSync('invoices', { recursive: true });
+        const doc = new PDFDocument();
+        const stream = fs.createWriteStream(invoicePath);
+        await new Promise((resolve, reject) => {
+          stream.on('finish', resolve);
+          stream.on('error', reject);
+          doc.on('error', reject);
+          doc.pipe(stream);
+          doc.text('Clinic Subscription Invoice');
+          doc.text(`Plan: ${payment.plan}`);
+          doc.text(`Duration: ${payment.durationMonths} month(s)`);
+          doc.text(`Amount: INR ${(payment.amount / 100).toFixed(2)}`);
+          doc.end();
+        });
+        payment.invoicePath = invoicePath;
+        await payment.save();
+      } catch (invoiceError) {
+        // An invoice write failure must not undo a captured payment or membership.
+        console.error('Payment invoice generation error:', invoiceError);
+      }
     }
-    return res.json({ success: true, message: 'Payment verified and membership activated', data: payment });
+    return res.json({
+      success: true,
+      message: 'Payment verified and membership activated',
+      data: payment,
+      membership: { plan: payment.plan, activatedAt: payment.activatedAt, expiresAt: payment.expiresAt }
+    });
   } catch (error) {
     console.error('Verify payment error:', error);
     return res.status(500).json({ success: false, message: 'Could not verify payment' });

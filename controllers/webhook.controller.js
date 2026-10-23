@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const Payment = require('../models/Payment');
-const Clinic = require('../models/Clinic');
+const activateMembership = require('../utils/activateMembership');
 
 exports.razorpayWebhook = async (req, res) => {
   try {
@@ -24,18 +24,19 @@ exports.razorpayWebhook = async (req, res) => {
       }
 
       const payment = await Payment.findOne({ orderId: capturedPayment.order_id });
-      if (payment) {
-        const alreadySuccessful = payment.status === 'SUCCESS';
-        if (!alreadySuccessful) {
-          payment.status = 'SUCCESS';
-          payment.paymentId = capturedPayment.id;
-          await payment.save();
-        }
+      if (!payment) return res.status(500).json({ success: false, message: 'Payment order is not recorded yet' });
 
-        await Clinic.findByIdAndUpdate(payment.clinicId, {
-          plan: payment.plan,
-          ...(alreadySuccessful ? {} : { planActivatedAt: new Date() })
-        });
+      const capturedAt = req.body.created_at
+        ? new Date(req.body.created_at * 1000)
+        : new Date();
+      await activateMembership(payment, capturedPayment.id, capturedAt);
+    } else if (req.body.event === 'payment.failed') {
+      const failedPayment = req.body.payload?.payment?.entity;
+      if (failedPayment?.order_id) {
+        await Payment.findOneAndUpdate(
+          { orderId: failedPayment.order_id, status: { $ne: 'SUCCESS' } },
+          { status: 'FAILED', paymentId: failedPayment.id }
+        );
       }
     }
 

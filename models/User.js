@@ -43,9 +43,12 @@ const UserSchema = new mongoose.Schema(
     // Only meaningful on ADMIN users
     plan: {
       type: String,
-      enum: ['BRONZE', 'GOLD', 'PLATINUM'],
-      default: 'GOLD' // 🔄 Change to 'BRONZE' when plan system is ready
+      enum: ['FREE', 'SILVER', 'GOLD', 'BRONZE', 'PLATINUM'],
+      default: 'FREE'
     },
+
+    planActivatedAt: Date,
+    planExpiresAt: Date,
 
     // Only meaningful on ADMIN users
     clinicName: {

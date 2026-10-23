@@ -8,7 +8,17 @@ const xss = require('xss-clean');
 const logger = require('./utils/logger');
 
 // ✅ Validate critical env vars at startup
-const requiredEnvVars = ['JWT_SECRET', 'MONGO_URI', 'FRONTEND_URL', 'SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'];
+const requiredEnvVars = [
+  'JWT_SECRET',
+  'MONGO_URI',
+  'FRONTEND_URL',
+  'SMTP_HOST',
+  'SMTP_USER',
+  'SMTP_PASS',
+  'RAZORPAY_KEY_ID',
+  'RAZORPAY_KEY_SECRET',
+  'RAZORPAY_WEBHOOK_SECRET'
+];
 requiredEnvVars.forEach((key) => {
   if (!process.env[key]) throw new Error(`Missing required env var: ${key}`);
 });

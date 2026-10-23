@@ -13,6 +13,9 @@
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:3000" },
     { "key": "token", "value": "" },
+    { "key": "orderId", "value": "" },
+    { "key": "paymentId", "value": "" },
+    { "key": "signature", "value": "" },
     { "key": "id", "value": "507f1f77bcf86cd799439011" },
     { "key": "doctorId", "value": "507f1f77bcf86cd799439012" },
     { "key": "patientId", "value": "507f1f77bcf86cd799439013" },
@@ -484,11 +487,11 @@
       ]
     },
     {
-      "name": "Plans (public in current routes)",
+      "name": "Plans",
       "item": [
         {
           "name": "Create SILVER plan (price in INR)",
-          "request": { "method": "POST", "auth": { "type": "noauth" }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"SILVER\",\"price\":6999,\"staffAllowed\":true}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/plans" }
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"SILVER\",\"price\":6999,\"durationMonths\":3,\"staffAllowed\":true}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/plans" }
         },
         {
           "name": "List plans",
@@ -500,11 +503,11 @@
         },
         {
           "name": "Update plan",
-          "request": { "method": "PUT", "auth": { "type": "noauth" }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"price\":599,\"staffAllowed\":true}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/plans/{{id}}" }
+          "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"price\":6999,\"durationMonths\":3,\"staffAllowed\":true}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/plans/{{id}}" }
         },
         {
           "name": "Delete plan",
-          "request": { "method": "DELETE", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/api/plans/{{id}}" }
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/plans/{{id}}" }
         }
       ]
     },
@@ -542,11 +545,12 @@
       "item": [
         {
           "name": "Create Razorpay order for selected plan",
-          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"plan\":\"SILVER\"}", "options": { "raw": { "language": "json" } } }, "description": "Requires bearer token. Create the plan first with POST /api/plans, then send its name. The server reads the plan price from the database and converts INR to paise; client amount is not accepted.", "url": "{{baseUrl}}/api/payments/create-order" }
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"plan\":\"SILVER\"}", "options": { "raw": { "language": "json" } } }, "description": "Requires bearer token. The server reads the price and duration from the saved plan. Complete Razorpay Checkout, then verify with the callback values.", "url": "{{baseUrl}}/api/payments/create-order" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["if (pm.response.code < 300) {", "  const body = pm.response.json();", "  if (body.order?.id) pm.collectionVariables.set('orderId', body.order.id);", "}"] } }]
         },
         {
-          "name": "Verify Razorpay payment",
-          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"razorpay_order_id\":\"order_example\",\"razorpay_payment_id\":\"pay_example\",\"razorpay_signature\":\"replace-with-valid-signature\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/payments/verify" }
+          "name": "Verify Razorpay payment (use Checkout callback values)",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"razorpay_order_id\":\"{{orderId}}\",\"razorpay_payment_id\":\"{{paymentId}}\",\"razorpay_signature\":\"{{signature}}\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/payments/verify" }
         },
         {
           "name": "Payment history",
