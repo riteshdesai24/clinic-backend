@@ -487,8 +487,8 @@
       "name": "Plans (public in current routes)",
       "item": [
         {
-          "name": "Create plan",
-          "request": { "method": "POST", "auth": { "type": "noauth" }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"SILVER\",\"price\":499,\"staffAllowed\":true}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/plans" }
+          "name": "Create SILVER plan (price in INR)",
+          "request": { "method": "POST", "auth": { "type": "noauth" }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"SILVER\",\"price\":6999,\"staffAllowed\":true}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/plans" }
         },
         {
           "name": "List plans",
@@ -541,8 +541,8 @@
       "name": "Payments",
       "item": [
         {
-          "name": "Create Razorpay order",
-          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"amount\":50000}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/payments/create-order" }
+          "name": "Create Razorpay order for selected plan",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"plan\":\"SILVER\"}", "options": { "raw": { "language": "json" } } }, "description": "Requires bearer token. Create the plan first with POST /api/plans, then send its name. The server reads the plan price from the database and converts INR to paise; client amount is not accepted.", "url": "{{baseUrl}}/api/payments/create-order" }
         },
         {
           "name": "Verify Razorpay payment",

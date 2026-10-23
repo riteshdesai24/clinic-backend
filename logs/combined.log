@@ -414,3 +414,7 @@
 {"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to +15551234567","timestamp":"2026-10-22T15:59:32.322Z"}
 {"error":"Authentication Error - invalid username","level":"error","message":"WhatsApp send failed to 8692972118","timestamp":"2026-10-22T15:59:32.329Z"}
 {"level":"info","message":"Treatment created: 6ada32f78e8d07aab099aa46 for appointment: 6ada32e38e8d07aab099aa2a","timestamp":"2026-10-22T15:59:51.979Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-23T07:58:41.417Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-23T07:58:42.258Z"}
+{"level":"info","message":"Server running on port 3000","timestamp":"2026-10-23T08:01:40.639Z"}
+{"level":"info","message":"MongoDB connected","timestamp":"2026-10-23T08:01:41.784Z"}

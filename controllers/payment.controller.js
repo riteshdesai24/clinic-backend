@@ -17,7 +17,9 @@ exports.createOrder = async (req, res) => {
     if (!req.clinicId) return res.status(400).json({ success: false, message: 'Clinic is missing from the authenticated account' });
     const amount = plan.price * 100;
     if (!Number.isSafeInteger(amount)) return res.status(400).json({ success: false, message: 'Plan price is invalid' });
-    const order = await razorpay.orders.create({ amount, currency: 'INR', receipt: `clinic_${req.clinicId}_${Date.now()}` });
+    // Razorpay limits receipt IDs to 40 characters.
+    const receipt = `sub_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`;
+    const order = await razorpay.orders.create({ amount, currency: 'INR', receipt });
     await Payment.create({ clinicId: req.clinicId, plan: plan.name, orderId: order.id, amount, status: 'CREATED' });
     return res.json({ success: true, order, plan: { name: plan.name, price: plan.price } });
   } catch (error) {
