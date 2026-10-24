@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
 const validatePassword = require('../utils/validatePassword');
+const clinicApiResponse = require('../utils/clinicApiResponse');
 const logger = require('../utils/logger');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -20,11 +21,6 @@ const generateToken = (user) => {
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '1d' }
   );
-};
-
-const stripSensitiveFields = (userObj) => {
-  const { password, resetPasswordToken, resetPasswordExpire, ...safeUser } = userObj;
-  return safeUser;
 };
 
 // ─── Register Clinic (ADMIN) ──────────────────────────────────────────────────
@@ -73,26 +69,13 @@ exports.registerClinic = async (req, res) => {
 
     logger.info(`New clinic registered: admin user ${user._id}`);
 
-    return res.status(201).json({
-    success: true,
-    message: 'Clinic registered successfully',
-    token,
-      clinic: {                        // ✅ Add this — matches login shape
-      _id: user._id,
-      clinicName: user.clinicName,
-      plan: user.plan,
-      planActivatedAt: user.planActivatedAt,
-      planExpiresAt: user.planExpiresAt
-    },
-    user: {
-      _id: user._id,
-      clinicName: user.clinicName,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      plan: user.plan
-    }
-  });
+    return res.status(201).json(clinicApiResponse({
+      user,
+      clinicOwner: user,
+      logoOwner: user,
+      token,
+      message: 'Clinic registered successfully'
+    }));
 
   } catch (error) {
     logger.error('Register Clinic Error', { error: error.message, stack: error.stack });
@@ -115,7 +98,7 @@ exports.login = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select('+password +logoContentType +logoContent');
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({
@@ -134,35 +117,21 @@ exports.login = async (req, res) => {
     // ✅ For STAFF/DOCTOR — fetch the ADMIN (clinic owner) to get clinicName + plan
     let clinicInfo = null;
     if (user.role !== 'ADMIN' && user.clinicId) {
-      clinicInfo = await User.findById(user.clinicId).select('clinicName plan planActivatedAt planExpiresAt email phone');
+      clinicInfo = await User.findById(user.clinicId).select(
+        'clinicName plan planActivatedAt planExpiresAt phone email address1 address2 address3 country countryId state stateId city cityId pincode +logoContentType +logoContent'
+      );
     }
 
     const token = generateToken(user);
-    const safeUser = stripSensitiveFields(user.toObject());
-
     logger.info(`User logged in: ${user._id} role: ${user.role}`);
 
-    return res.json({
-      success: true,
-      message: 'Login successful',
+    return res.json(clinicApiResponse({
+      user,
+      clinicOwner: user.role === 'ADMIN' ? user : clinicInfo,
+      logoOwner: user.role === 'ADMIN' ? user : clinicInfo,
       token,
-      clinic: user.role === 'ADMIN'
-        ? {
-            _id: user._id,
-            clinicName: user.clinicName,
-            plan: user.plan,
-            planActivatedAt: user.planActivatedAt,
-            planExpiresAt: user.planExpiresAt
-          }
-        : {
-            _id: user.clinicId,
-            clinicName: clinicInfo?.clinicName,
-            plan: clinicInfo?.plan,
-            planActivatedAt: clinicInfo?.planActivatedAt,
-            planExpiresAt: clinicInfo?.planExpiresAt
-          },
-      user: safeUser
-    });
+      message: 'Login successful'
+    }));
 
   } catch (error) {
     logger.error('Login Error', { error: error.message, stack: error.stack });

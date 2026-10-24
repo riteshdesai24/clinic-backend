@@ -114,18 +114,68 @@ exports.deleteMembership = async (req, res) => {
 };
 
 const masters = { countries: Country, states: State, cities: City };
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+exports.autocompleteCountries = async (req, res) => {
+  try {
+    const term = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    const requestedLimit = Number.parseInt(req.query.limit, 10) || 10;
+    const limit = Math.min(Math.max(requestedLimit, 1), 20);
+    const filter = { isActive: true };
+    if (term) {
+      const regex = new RegExp(escapeRegex(term), 'i');
+      filter.$or = [{ name: regex }, { code: regex }];
+    }
+    const countries = await Country.find(filter).select('name code').sort({ name: 1 }).limit(limit).lean();
+    const data = countries.map((country) => ({
+      id: country._id,
+      value: country._id,
+      label: country.name,
+      name: country.name,
+      code: country.code
+    }));
+    return res.json({ success: true, count: data.length, data });
+  } catch (error) { return sendError(res, error); }
+};
+
+const resolveCountryId = async (value) => {
+  const candidate = value && typeof value === 'object'
+    ? value._id || value.id || value.value || value.name || value.label
+    : value;
+  if (candidate === undefined || candidate === null || candidate === '') return null;
+  if (mongoose.isValidObjectId(candidate)) {
+    const country = await Country.findOne({ _id: candidate, isActive: true }).select('_id');
+    return country?._id || null;
+  }
+  if (typeof candidate !== 'string') return null;
+  const nameOrCode = new RegExp(`^${escapeRegex(candidate.trim())}$`, 'i');
+  const country = await Country.findOne({ isActive: true, $or: [{ name: nameOrCode }, { code: nameOrCode }] }).select('_id');
+  return country?._id || null;
+};
+
 exports.listMaster = async (req, res) => {
   try {
     const Model = masters[req.params.type];
     if (!Model) return res.status(404).json({ success: false, message: 'Master not found' });
-    return res.json({ success: true, data: await Model.find().sort({ name: 1 }) });
+    let query = Model.find().sort({ name: 1 });
+    if (req.params.type === 'states') query = query.populate('country', 'name code');
+    if (req.params.type === 'cities') query = query.populate({ path: 'state', select: 'name country', populate: { path: 'country', select: 'name code' } });
+    return res.json({ success: true, data: await query });
   } catch (error) { return sendError(res, error); }
 };
 exports.createMaster = async (req, res) => {
   try {
     const Model = masters[req.params.type];
     if (!Model) return res.status(404).json({ success: false, message: 'Master not found' });
-    return res.status(201).json({ success: true, message: 'Record created successfully', data: await Model.create(req.body) });
+    const payload = { ...req.body };
+    if (req.params.type === 'states') {
+      const countryId = await resolveCountryId(payload.country);
+      if (!countryId) return res.status(400).json({ success: false, message: 'Choose a valid country from the country autocomplete' });
+      payload.country = countryId;
+    }
+    const record = await Model.create(payload);
+    if (req.params.type === 'states') await record.populate('country', 'name code');
+    return res.status(201).json({ success: true, message: 'Record created successfully', data: record });
   } catch (error) { return sendError(res, error); }
 };
 exports.updateMaster = async (req, res) => {
@@ -133,7 +183,15 @@ exports.updateMaster = async (req, res) => {
     const Model = masters[req.params.type];
     if (!Model) return res.status(404).json({ success: false, message: 'Master not found' });
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ success: false, message: 'Invalid record id' });
-    const record = await Model.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const payload = { ...req.body };
+    if (req.params.type === 'states' && payload.country !== undefined) {
+      const countryId = await resolveCountryId(payload.country);
+      if (!countryId) return res.status(400).json({ success: false, message: 'Choose a valid country from the country autocomplete' });
+      payload.country = countryId;
+    }
+    let query = Model.findByIdAndUpdate(req.params.id, payload, { new: true, runValidators: true });
+    if (req.params.type === 'states') query = query.populate('country', 'name code');
+    const record = await query;
     if (!record) return res.status(404).json({ success: false, message: 'Record not found' });
     return res.json({ success: true, message: 'Record updated successfully', data: record });
   } catch (error) { return sendError(res, error); }

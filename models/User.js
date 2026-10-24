@@ -56,6 +56,17 @@ const UserSchema = new mongoose.Schema(
       trim: true
     },
 
+    address1: { type: String, trim: true },
+    address2: { type: String, trim: true },
+    address3: { type: String, trim: true },
+    country: { type: String, trim: true },
+    state: { type: String, trim: true },
+    city: { type: String, trim: true },
+    countryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Country', default: null },
+    stateId: { type: mongoose.Schema.Types.ObjectId, ref: 'State', default: null },
+    cityId: { type: mongoose.Schema.Types.ObjectId, ref: 'City', default: null },
+    pincode: { type: String, trim: true },
+
     logoContentType: {
       type: String,
       select: false

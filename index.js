@@ -71,6 +71,7 @@ app.get('/api', (req, res) => {
 // ✅ Routes
 app.use('/api/auth',         require('./routes/auth.routes'));
 app.use('/api/profile',      require('./routes/profile.routes'));
+app.use('/api/locations',    require('./routes/location-master.routes'));
 app.use('/api/users',        require('./routes/user.routes'));
 app.use('/api/staff',        require('./routes/staff.routes'));
 app.use('/api/doctors',      require('./routes/doctor.routes'));

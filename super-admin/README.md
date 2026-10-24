@@ -31,6 +31,10 @@ Use `countries`, `states`, or `cities` in the following routes:
 
 Country fields: `name`, optional `code`. State fields: `name`, `country` (country ID). City fields: `name`, `state` (state ID). A country cannot be deleted while it has states, and a state cannot be deleted while it has cities.
 
+For the State Master country autocomplete, call `GET /api/super-admin/countries/autocomplete?q=ind`. Suggestions include `id`, `value` (the MongoDB country ID), `label`, `name`, and `code`; submit `value` as the state's `country`. The state create/update endpoints also resolve an exact country name or code for compatibility with clients sending text.
+
+The same `GET /api/super-admin/countries`, `/api/super-admin/states`, `/api/super-admin/cities`, and `/api/super-admin/countries/autocomplete?q=ind` endpoints accept either a Super Admin token or a clinic-user token (`ADMIN`, `STAFF`, `DOCTOR`). Read-only aliases are also available under `/api/locations`. All create, update, and delete endpoints remain Super Admin-only.
+
 ## Memberships
 
 - `GET /api/super-admin/memberships`

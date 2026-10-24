@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const controller = require('./super-admin.controller');
 const { protect } = require('./super-admin.middleware');
+const locationReadAuth = require('./location-read.middleware');
 const { authLimiter } = require('../middlewares/rateLimiter');
 const excelUpload = require('./excel-upload.middleware');
 
@@ -9,6 +10,10 @@ router.post('/login', authLimiter, controller.login);
 // Keep the frontend's existing /api/superadmin/auth/* URLs working as well.
 router.post('/auth/register', authLimiter, controller.register);
 router.post('/auth/login', authLimiter, controller.login);
+
+// Location master reads support both Super Admin and authenticated clinic users.
+router.get('/countries/autocomplete', locationReadAuth, controller.autocompleteCountries);
+router.get('/:type(countries|states|cities)', locationReadAuth, controller.listMaster);
 
 router.use(protect);
 router.get('/clinics', controller.listClinics);
@@ -34,7 +39,6 @@ router.delete('/labs/:id', controller.deleteLab);
 router.get('/imports/excel/:resource/template', controller.downloadExcelTemplate);
 router.post('/imports/excel/:resource', excelUpload, controller.importExcel);
 
-router.get('/:type(countries|states|cities)', controller.listMaster);
 router.post('/:type(countries|states|cities)', controller.createMaster);
 router.put('/:type(countries|states|cities)/:id', controller.updateMaster);
 router.delete('/:type(countries|states|cities)/:id', controller.deleteMaster);
